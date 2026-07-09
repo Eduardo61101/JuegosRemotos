@@ -61,12 +61,9 @@
         const velocidadTextElement = document.getElementById("velocidadText");
         const mensajeElement = document.getElementById("mensaje");
 
-        // Línea del horizonte donde se juntan los carriles en el fondo
         const horizonteY = 220; 
 
-        // Configuración del jugador (en la parte inferior, fija en Y)
-        const coche = { x: canvas.width / 2, anchoBase: 75, altoBase: 50 };
-        let posicionX = 0; // -1 a 1 (posición en la carretera)
+        let posicionX = 0; // Posición lateral de la carretera (-0.8 a 0.8)
         let velocidadX = 0;
 
         let enemigos = [];
@@ -105,121 +102,108 @@
 
         function generarEnemigo() {
             if (juegoPausado || juegoTerminado || velocidadActual < 2) return;
-            // Carriles: Izquierda (-0.6, -0.2) y Derecha (0.2, 0.6)
             const opcionesCarril = [-0.6, -0.2, 0.2, 0.6];
             const carrilAleatorio = opcionesCarril[Math.floor(Math.random() * opcionesCarril.length)];
             
             enemigos.push({
-                lineaProgresion: 0, // De 0 (horizonte) a 1 (pantalla inferior)
+                lineaProgresion: 0, 
                 carrilX: carrilAleatorio,
-                velocidadProgreso: 0.008 + Math.random() * 0.007,
+                velocidadProgreso: 0.007 + Math.random() * 0.006,
                 color: Math.random() > 0.5 ? "#f1c40f" : "#9b59b6"
             });
         }
 
         function proyectarPerspectiva(carrilX, progresoY) {
-            // Transformación matemática de perspectiva 3D pseudo-retro
             const anchoHorizonte = 40;
             const anchoBaseCarretera = 420;
-            
-            // Interpolación de escala según la distancia
             const anchoActualCarretera = anchoHorizonte + (anchoBaseCarretera - anchoHorizonte) * progresoY;
             const centroX = canvas.width / 2;
             
             const x = centroX + (carrilX * (anchoActualCarretera / 2));
             const y = horizonteY + (canvas.height - horizonteY) * progresoY;
-            const escala = 0.15 + 0.85 * progresoY; // Más pequeño al fondo
+            const escala = 0.15 + 0.85 * progresoY; 
 
             return { x, y, escala };
         }
 
         function dibujarCoche(x, y, escala, colorPrincipal, esEnemigo = false) {
-            const w = 70 * escala;
-            const h = 45 * escala;
+            const w = 65 * escala;
+            const h = 42 * escala;
 
             ctx.save();
             ctx.translate(x, y);
 
-            // Neumáticos
+            // Neumáticos traseros robustos
             ctx.fillStyle = "#090a0e";
-            ctx.fillRect(-w/2 - 4*escala, h - 28*escala, 7*escala, 20*escala);
-            ctx.fillRect(w/2 - 3*escala, h - 28*escala, 7*escala, 20*escala);
+            ctx.fillRect(-w/2 - 3*escala, h - 25*escala, 7*escala, 18*escala);
+            ctx.fillRect(w/2 - 4*escala, h - 25*escala, 7*escala, 18*escala);
 
-            // Carrocería trasera
+            // Carrocería principal (Parachoques de carreras)
             ctx.fillStyle = colorPrincipal;
-            ctx.fillRect(-w/2, h - 18*escala, w, 15*escala);
+            ctx.fillRect(-w/2, h - 16*escala, w, 14*escala);
 
-            // Techo y luna trasera
+            // Habitáculo / Cabina central
             ctx.fillStyle = "#141923";
             ctx.beginPath();
-            ctx.moveTo(-w/2 + 8*escala, h - 16*escala);
-            ctx.lineTo(-w/2 + 15*escala, 5*escala);
-            ctx.lineTo(w/2 - 15*escala, 5*escala);
-            ctx.lineTo(w/2 - 8*escala, h - 16*escala);
+            ctx.moveTo(-w/2 + 8*escala, h - 15*escala);
+            ctx.lineTo(-w/2 + 14*escala, 4*escala);
+            ctx.lineTo(w/2 - 14*escala, 4*escala);
+            ctx.lineTo(w/2 - 8*escala, h - 15*escala);
             ctx.closePath();
             ctx.fill();
 
-            if (!esEnemigo) {
-                // Cristal parabrisas trasero azul neón
-                ctx.fillStyle = "#48dbfb";
-                ctx.beginPath();
-                ctx.moveTo(-w/2 + 12*escala, h - 15*escala);
-                ctx.lineTo(-w/2 + 18*escala, 14*escala);
-                ctx.lineTo(w/2 - 18*escala, 14*escala);
-                ctx.lineTo(w/2 - 12*escala, h - 15*escala);
-                ctx.closePath();
-                ctx.fill();
+            // Parabrisas trasero con brillo neón
+            ctx.fillStyle = "#48dbfb";
+            ctx.beginPath();
+            ctx.moveTo(-w/2 + 11*escala, h - 14*escala);
+            ctx.lineTo(-w/2 + 16*escala, 12*escala);
+            ctx.lineTo(w/2 - 16*escala, 12*escala);
+            ctx.lineTo(w/2 - 11*escala, h - 14*escala);
+            ctx.closePath();
+            ctx.fill();
 
-                // Alerón deportivo
-                ctx.fillStyle = "#090a0e";
-                ctx.fillRect(-w/2 - 2*escala, h - 24*escala, w + 4*escala, 4*escala);
-                
-                // Luces rojas traseras de posición
-                ctx.fillStyle = acelerando ? "#ff4757" : "#ff6b81";
-                ctx.fillRect(-w/2 + 4*escala, h - 10*escala, 10*escala, 4*escala);
-                ctx.fillRect(w/2 - 14*escala, h - 10*escala, 10*escala, 4*escala);
-            } else {
-                // Si es enemigo, muestra sus luces traseras apagadas o amarillas si vienen de frente
-                ctx.fillStyle = "#ffa502";
-                ctx.fillRect(-w/2 + 4*escala, h - 8*escala, 8*escala, 4*escala);
-                ctx.fillRect(w/2 - 12*escala, h - 8*escala, 8*escala, 4*escala);
-            }
+            // Alerón superior deportivo deportivo
+            ctx.fillStyle = "#090a0e";
+            ctx.fillRect(-w/2 - 2*escala, h - 21*escala, w + 4*escala, 4*escala);
+
+            // Luces de freno
+            ctx.fillStyle = (acelerando && !esEnemigo) ? "#ff4757" : "#ff2222";
+            ctx.fillRect(-w/2 + 3*escala, h - 8*escala, 8*escala, 3*escala);
+            ctx.fillRect(w/2 - 11*escala, h - 8*escala, 8*escala, 3*escala);
 
             ctx.restore();
         }
 
         function dibujar() {
-            // Cielo superior
+            // Fondo Cielo
             ctx.fillStyle = "#05050d";
             ctx.fillRect(0, 0, canvas.width, horizonteY);
             
-            // Montañas lejanas decorativas en el horizonte
+            // Montañas
             ctx.fillStyle = "#0d121f";
             ctx.beginPath();
             ctx.moveTo(0, horizonteY); ctx.lineTo(120, horizonteY - 30); ctx.lineTo(260, horizonteY);
             ctx.lineTo(380, horizonteY - 40); ctx.lineTo(500, horizonteY);
             ctx.fill();
 
-            // Terreno/Césped inferior
+            // Suelo
             ctx.fillStyle = "#101520";
             ctx.fillRect(0, horizonteY, canvas.width, canvas.height - horizonteY);
 
-            // Dibujar segmentos de carretera con líneas para dar efecto de movimiento fluido
-            const segmentos = 25;
+            // Tramos de carretera en perspectiva 3D
+            const segmentos = 22;
             for (let i = segmentos; i >= 0; i--) {
                 const progActual = i / segmentos;
                 const progSiguiente = (i + 1) / segmentos;
-
-                // Modulamos la posición con el offset del fondo para simular animación de velocidad
                 const colorFiltro = (Math.floor(i + fondoOffset) % 2 === 0);
                 
-                const p1 = proyectarPerspectiva(0, progActual);
-                const p2 = proyectarPerspectiva(0, progSiguiente);
+                const p1 = proyectarPerspectiva(-posicionX, progActual);
+                const p2 = proyectarPerspectiva(-posicionX, progSiguiente);
 
                 const anchoP1 = 420 * (0.15 + 0.85 * progActual);
                 const anchoP2 = 420 * (0.15 + 0.85 * progSiguiente);
 
-                // Dibujar asfalto
+                // Dibujar pista
                 ctx.fillStyle = colorFiltro ? "#242a36" : "#282f3d";
                 ctx.beginPath();
                 ctx.moveTo(p1.x - anchoP1/2, p1.y);
@@ -228,7 +212,7 @@
                 ctx.lineTo(p1.x + anchoP1/2, p1.y);
                 ctx.fill();
 
-                // Líneas rojas/blancas laterales (Arcén de seguridad arcade)
+                // Bordes (Pianos)
                 ctx.fillStyle = colorFiltro ? "#E50914" : "#ffffff";
                 ctx.beginPath();
                 ctx.moveTo(p1.x - anchoP1/2, p1.y); ctx.lineTo(p2.x - anchoP2/2, p2.y);
@@ -239,12 +223,10 @@
                 ctx.lineTo(p2.x + anchoP2/2 - 6*p2.escala, p2.y); ctx.lineTo(p1.x + anchoP1/2 - 6*p1.escala, p1.y);
                 ctx.fill();
 
-                // Líneas divisorias de carriles del centro (Solo tramos intermitentes)
+                // Línea discontinua central
                 if (colorFiltro) {
-                    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-                    const lw1 = 4 * p1.escala;
-                    const lw2 = 4 * p2.escala;
-                    // Carril central
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                    const lw1 = 3 * p1.escala; const lw2 = 3 * p2.escala;
                     ctx.beginPath();
                     ctx.moveTo(p1.x - lw1, p1.y); ctx.lineTo(p2.x - lw2, p2.y);
                     ctx.lineTo(p2.x + lw2, p2.y); ctx.lineTo(p1.x + lw1, p1.y);
@@ -252,26 +234,25 @@
                 }
             }
 
-            // --- TRÁFICO ENEMIGO EN PERSPECTIVA ---
+            // --- ENEMIGOS EN PERSPECTIVA ---
             enemigos.forEach(e => {
-                if (e.lineaProgresion > 0.1 && e.lineaProgresion < 1) {
-                    // Ajustamos su carril lateral en base a la perspectiva real
+                if (e.lineaProgresion > 0.05 && e.lineaProgresion < 1) {
                     const p = proyectarPerspectiva(e.carrilX - posicionX, e.lineaProgresion);
                     dibujarCoche(p.x, p.y, p.escala, e.color, true);
                 }
             });
 
-            // --- DIBUJAR JUGADOR FIJO EN LA BASE (PERSPECTIVA MÁXIMA) ---
-            const jugadorP = proyectarPerspectiva(0, 0.92);
-            dibujarCoche(canvas.width / 2, jugadorP.y, 0.95, "#E50914", false);
+            // --- ¡NUEVO JUGADOR CORREGIDO POR ENCIMA DE TODO! ---
+            // Ponemos la coordenada fija en X central porque la carretera es la que se desplaza lateralmente
+            const jugadorY = canvas.height - 90; 
+            dibujarCoche(canvas.width / 2, jugadorY, 1.0, "#E50914", false);
         }
 
         function actualizar() {
             if (juegoPausado || juegoTerminado) return;
 
-            // Físicas de aceleración y velocidad del mundo
             if (acelerando) {
-                if (velocidadActual < maxVelocidad) velocidadActual += 0.18;
+                if (velocidadActual < maxVelocidad) velocidadActual += 0.2;
             } else {
                 if (velocidadActual > 0) velocidadActual -= 0.15;
             }
@@ -282,30 +263,27 @@
             if (velocidadActual > 0) {
                 score += Math.floor(velocidadActual / 3);
                 scoreElement.innerText = `${score}m`;
-                // Efecto de avance de las líneas
-                fondoOffset += (velocidadActual * 0.05);
+                fondoOffset += (velocidadActual * 0.06);
             }
 
-            // Mover coche lateralmente (Modifica la coordenada del mundo de la carretera)
+            // Control lateral
             posicionX += velocidadX;
-            if (posicionX < -0.8) posicionX = -0.8;
-            if (posicionX > 0.8) posicionX = 0.8;
+            if (posicionX < -0.75) posicionX = -0.75;
+            if (posicionX > 0.75) posicionX = 0.75;
 
-            // Actualizar progresión de los enemigos
+            // Manejo de enemigos y colisión
             enemigos.forEach((e, index) => {
-                // Se acercan más rápido si el jugador va lento, o bajan según su velocidad propia
-                e.lineaProgresion += e.velocidadProgreso + (velocidadActual * 0.0005);
+                e.lineaProgresion += e.velocidadProgreso + (velocidadActual * 0.0004);
 
-                // Si sobrepasa la pantalla del jugador, se elimina
                 if (e.lineaProgresion >= 1) {
                     enemigos.splice(index, 1);
                     return;
                 }
 
-                // Zona crítica de impacto (Cuando comparte la distancia Y de aproximación del jugador)
-                if (e.lineaProgresion > 0.85 && e.lineaProgresion < 0.96) {
-                    // Verificamos si están colisionando en el eje X relativo de la pista
-                    if (Math.abs(e.carrilX - posicionX) < 0.28) {
+                // Zona crítica donde el enemigo cruza al jugador (Progreso de 0.85 a 0.98)
+                if (e.lineaProgresion > 0.84 && e.lineaProgresion < 0.97) {
+                    // Si la diferencia lateral es pequeña, es choque letal
+                    if (Math.abs(e.carrilX - posicionX) < 0.26) {
                         finalizarJuego();
                     }
                 }
@@ -318,7 +296,7 @@
             juegoTerminado = true;
             clearInterval(bucleJuego);
             clearInterval(intervaloEnemigos);
-            mensajeElement.innerHTML = `<span style="color:#E74C3C;">¡COLISIÓN EN LA CARRETERA!</span><br><br><span style="font-size:20px;">Marcador: ${score} metros</span><br><br><span style='font-size: 16px; color: #aaa;'>Presiona cualquier botón para reintentar</span>`;
+            mensajeElement.innerHTML = `<span style="color:#E74C3C;">¡COLISIÓN EN LA CARRETERA!</span><br><br><span style="font-size:20px;">Récord: ${score} metros</span><br><br><span style='font-size: 16px; color: #aaa;'>Presiona cualquier botón para reintentar</span>`;
             mensajeElement.style.display = "block";
         }
 
@@ -331,8 +309,8 @@
             }
 
             switch (comando) {
-                case "IZQUIERDA": velocidadX = -0.04; break;
-                case "DERECHA": velocidadX = 0.04; break;
+                case "IZQUIERDA": velocidadX = -0.035; break;
+                case "DERECHA": velocidadX = 0.035; break;
                 case "CENTRO": case "ARRIBA": case "ABAJO": velocidadX = 0; break;
                 case "A": acelerando = true; break;
                 case "B": case "X": case "Y": acelerando = false; break;
