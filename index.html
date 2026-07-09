@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Games - Inicio</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #141414;
+            color: #ffffff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+        }
+
+        h1 {
+            color: #E50914; /* Rojo Netflix */
+            font-size: 3.5rem;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        p {
+            color: #a3a3a3;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+
+        .contenedor-opciones {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .tarjeta {
+            background-color: #181818;
+            border: 2px solid #333;
+            border-radius: 8px;
+            width: 220px;
+            padding: 30px 20px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Efecto de selección estilo Netflix */
+        .tarjeta:hover {
+            transform: scale(1.05);
+            border-color: #E50914;
+            background-color: #222;
+        }
+
+        .icono {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .titulo-tarjeta {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .descripcion {
+            font-size: 0.9rem;
+            color: #8c8c8c;
+            line-height: 1.4;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>NETFLIX GAMES</h1>
+    <p>Selecciona el modo de inicio para tu dispositivo</p>
+
+    <div class="contenedor-opciones">
+        <!-- Opción para la Computadora o TV -->
+        <a href="pantalla.html" class="tarjeta">
+            <span class="icono">📺</span>
+            <span class="titulo-tarjeta">Iniciar Pantalla</span>
+            <span class="descripcion">Abre esto en tu PC o TV para ver el juego y el código QR.</span>
+        </a>
+
+        <!-- Opción de respaldo por si el QR falla -->
+        <a href="control.html" class="tarjeta">
+            <span class="icono">🎮</span>
+            <span class="titulo-tarjeta">Modo Mando</span>
+            <span class="descripcion">Úsalo solo si quieres abrir el control manualmente (requiere ID de sala).</span>
+        </a>
+    </div>
+
+</body>
+</html>
