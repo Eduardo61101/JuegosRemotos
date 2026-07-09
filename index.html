@@ -1,106 +1,374 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netflix Games - Inicio</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #141414;
-            color: #ffffff;
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-        }
 
-        h1 {
-            color: #E50914; /* Rojo Netflix */
-            font-size: 3.5rem;
-            margin-bottom: 5px;
-            letter-spacing: 1px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        p {
-            color: #a3a3a3;
-            font-size: 1.2rem;
-            margin-bottom: 40px;
-        }
+<title>Netflix Games</title>
 
-        .contenedor-opciones {
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-            justify-content: center;
-            max-width: 600px;
-            padding: 20px;
-        }
+<style>
 
-        .tarjeta {
-            background-color: #181818;
-            border: 2px solid #333;
-            border-radius: 8px;
-            width: 220px;
-            padding: 30px 20px;
-            text-decoration: none;
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
 
-        /* Efecto de selección estilo Netflix */
-        .tarjeta:hover {
-            transform: scale(1.05);
-            border-color: #E50914;
-            background-color: #222;
-        }
+body{
 
-        .icono {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            display: block;
-        }
+    background:#141414;
 
-        .titulo-tarjeta {
-            font-size: 1.4rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            display: block;
-        }
+    color:white;
 
-        .descripcion {
-            font-size: 0.9rem;
-            color: #8c8c8c;
-            line-height: 1.4;
-            display: block;
-        }
-    </style>
+}
+
+/* ENCABEZADO */
+
+header{
+
+    height:70px;
+
+    background:#000;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 30px;
+
+    box-shadow:0 0 20px rgba(0,0,0,.6);
+
+}
+
+#logo{
+
+    color:#E50914;
+
+    font-size:34px;
+
+    font-weight:bold;
+
+    letter-spacing:2px;
+
+}
+
+#titulo{
+
+    color:#ffffff;
+
+    font-size:18px;
+
+}
+
+/* CONTENIDO */
+
+main{
+
+    padding:40px;
+
+}
+
+h2{
+
+    margin-bottom:20px;
+
+}
+
+#listaJuegos{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+
+    gap:25px;
+
+}
+
+/* TARJETAS */
+
+.tarjeta{
+
+    background:#1c1c1c;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+    border:2px solid transparent;
+
+}
+
+.tarjeta:hover{
+
+    transform:scale(1.05);
+
+    border-color:#E50914;
+
+}
+
+.imagen{
+
+    width:100%;
+
+    height:160px;
+
+    object-fit:cover;
+
+    background:#333;
+
+}
+
+.info{
+
+    padding:15px;
+
+}
+
+.nombre{
+
+    font-size:22px;
+
+    font-weight:bold;
+
+}
+
+.descripcion{
+
+    margin-top:8px;
+
+    color:#bbbbbb;
+
+    font-size:15px;
+
+}
+
+.jugar{
+
+    margin-top:18px;
+
+    width:100%;
+
+    padding:12px;
+
+    background:#E50914;
+
+    color:white;
+
+    border:none;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    font-size:17px;
+
+    transition:.2s;
+
+}
+
+.jugar:hover{
+
+    background:#ff1c28;
+
+}
+
+footer{
+
+    text-align:center;
+
+    color:#888;
+
+    padding:30px;
+
+}
+
+</style>
+
 </head>
+
 <body>
 
-    <h1>NETFLIX GAMES</h1>
-    <p>Selecciona el modo de inicio para tu dispositivo</p>
+<header>
 
-    <div class="contenedor-opciones">
-        <!-- Opción para la Computadora o TV -->
-        <a href="pantalla.html" class="tarjeta">
-            <span class="icono">📺</span>
-            <span class="titulo-tarjeta">Iniciar Pantalla</span>
-            <span class="descripcion">Abre esto en tu PC o TV para ver el juego y el código QR.</span>
-        </a>
+<div id="logo">
 
-        <!-- Opción de respaldo por si el QR falla -->
-        <a href="control.html" class="tarjeta">
-            <span class="icono">🎮</span>
-            <span class="titulo-tarjeta">Modo Mando</span>
-            <span class="descripcion">Úsalo solo si quieres abrir el control manualmente (requiere ID de sala).</span>
-        </a>
-    </div>
+NETFLIX GAMES
+
+</div>
+
+<div id="titulo">
+
+Juega desde tu TV usando tu celular 🎮
+
+</div>
+
+</header>
+
+<main>
+
+<h2>Todos los juegos</h2>
+
+<div id="listaJuegos">
+
+<!-- Snake -->
+
+<div class="tarjeta">
+
+<img class="imagen" src="https://picsum.photos/500/300?random=1">
+
+<div class="info">
+
+<div class="nombre">
+
+🐍 Snake
+
+</div>
+
+<div class="descripcion">
+
+El clásico juego de la serpiente.
+
+</div>
+
+<button class="jugar"
+
+onclick="abrirJuego('snake')">
+
+Jugar
+
+</button>
+
+</div>
+
+</div>
+
+<!-- Pong -->
+
+<div class="tarjeta">
+
+<img class="imagen" src="https://picsum.photos/500/300?random=2">
+
+<div class="info">
+
+<div class="nombre">
+
+🏓 Pong
+
+</div>
+
+<div class="descripcion">
+
+Derrota a la computadora.
+
+</div>
+
+<button class="jugar"
+
+onclick="abrirJuego('pong')">
+
+Jugar
+
+</button>
+
+</div>
+
+</div>
+
+<!-- Laberinto -->
+
+<div class="tarjeta">
+
+<img class="imagen" src="https://picsum.photos/500/300?random=3">
+
+<div class="info">
+
+<div class="nombre">
+
+🧩 Laberinto
+
+</div>
+
+<div class="descripcion">
+
+Encuentra la salida.
+
+</div>
+
+<button class="jugar"
+
+onclick="abrirJuego('laberinto')">
+
+Jugar
+
+</button>
+
+</div>
+
+</div>
+
+<!-- Próximamente -->
+
+<div class="tarjeta">
+
+<img class="imagen" src="https://picsum.photos/500/300?random=4">
+
+<div class="info">
+
+<div class="nombre">
+
+🎁 Próximamente
+
+</div>
+
+<div class="descripcion">
+
+Muy pronto habrá más juegos.
+
+</div>
+
+<button class="jugar"
+
+disabled
+
+style="background:#555;cursor:not-allowed;">
+
+Próximamente
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</main>
+
+<footer>
+
+Netflix Games HTML<br>
+
+Controla todos los juegos desde tu celular.
+
+</footer>
+
+<script>
+
+function abrirJuego(nombre){
+
+location.href="pantalla.html?juego="+nombre;
+
+}
+
+</script>
 
 </body>
 </html>
