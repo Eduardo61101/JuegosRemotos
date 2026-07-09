@@ -1,855 +1,239 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>Netflix Games - Control</title>
-
-<!-- Firebase -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase.js"></script>
-
-<style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-    font-family:Arial,Helvetica,sans-serif;
-}
-
-body{
-
-    background:#141414;
-
-    color:white;
-
-    overflow:hidden;
-
-    width:100vw;
-
-    height:100vh;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-}
-
-#control{
-
-    width:100%;
-
-    height:100%;
-
-    display:flex;
-
-    flex-direction:column;
-
-    justify-content:space-between;
-
-    padding:20px;
-
-}
-
-
-
-
-
-
-/*==============================
-
-ENCABEZADO
-
-==============================*/
-
-header{
-
-display:flex;
-
-justify-content:space-between;
-
-align-items:center;
-
-}
-
-#logo{
-
-font-size:26px;
-
-font-weight:bold;
-
-color:#E50914;
-
-letter-spacing:1px;
-
-}
-
-#estado{
-
-font-size:15px;
-
-color:#2ed573;
-
-font-weight:bold;
-
-}
-
-
-
-
-
-
-/*==============================
-
-ZONA CENTRAL
-
-==============================*/
-
-main{
-
-flex:1;
-
-display:flex;
-
-justify-content:space-between;
-
-align-items:center;
-
-padding:20px 0;
-
-}
-
-
-
-
-
-
-/*==============================
-
-JOYSTICK
-
-==============================*/
-
-#joystick{
-
-width:190px;
-
-height:190px;
-
-background:#1d1d1d;
-
-border-radius:50%;
-
-position:relative;
-
-border:3px solid #2b2b2b;
-
-box-shadow:
-0 0 25px rgba(0,0,0,.6);
-
-}
-
-#stick{
-
-width:80px;
-
-height:80px;
-
-background:#E50914;
-
-border-radius:50%;
-
-position:absolute;
-
-left:55px;
-
-top:55px;
-
-transition:.05s;
-
-box-shadow:
-
-0 0 20px rgba(229,9,20,.5);
-
-}
-
-
-
-
-
-
-/*==============================
-
-BOTONES
-
-==============================*/
-
-#botones{
-
-display:grid;
-
-grid-template-columns:repeat(2,85px);
-
-grid-template-rows:repeat(2,85px);
-
-gap:18px;
-
-}
-
-.boton{
-
-width:85px;
-
-height:85px;
-
-border:none;
-
-border-radius:50%;
-
-background:#252525;
-
-color:white;
-
-font-size:30px;
-
-font-weight:bold;
-
-cursor:pointer;
-
-transition:.12s;
-
-box-shadow:
-
-0 6px 12px rgba(0,0,0,.4);
-
-}
-
-.boton:active{
-
-transform:scale(.92);
-
-}
-
-#a{
-
-background:#1abc9c;
-
-}
-
-#b{
-
-background:#e74c3c;
-
-}
-
-#x{
-
-background:#3498db;
-
-}
-
-#y{
-
-background:#f1c40f;
-
-color:black;
-
-}
-
-
-
-
-
-/*==============================
-
-BARRA INFERIOR
-
-==============================*/
-
-footer{
-
-display:flex;
-
-justify-content:space-between;
-
-align-items:center;
-
-padding-top:10px;
-
-}
-
-.menuBtn{
-
-width:90px;
-
-height:45px;
-
-background:#252525;
-
-border:none;
-
-border-radius:12px;
-
-color:white;
-
-font-size:15px;
-
-font-weight:bold;
-
-transition:.15s;
-
-}
-
-.menuBtn:active{
-
-transform:scale(.94);
-
-background:#E50914;
-
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control de Juego - Estudio Sermiteop</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0f1016;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        .contenedor {
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            display: none;
+        }
+        .visible { display: block; }
+        
+        h2 { margin: 0 0 10px 0; color: #ffd32a; font-size: 24px; }
+        .rol-alerta { font-size: 18px; font-weight: bold; margin-bottom: 20px; padding: 10px; border-radius: 6px; }
+        .rol-inocente { background: #2ed573; color: white; }
+        .rol-impostor { background: #ff4757; color: white; animation: pulso 1.5s infinite; }
+        
+        /* Botones dinámicos de Incisos y Votación */
+        .cuadrilla-botones {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .btn-opcion {
+            background: #1e2030;
+            color: white;
+            border: 2px solid #3d425e;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-opcion:active { background: #e50914; border-color: #ff1f2a; }
+        .btn-omitir { background: #333 !important; border-color: #555 !important; }
+        
+        .texto-espera { font-size: 18px; color: #8e9bb0; font-style: italic; }
+
+        @keyframes pulso {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+    </style>
 </head>
-
 <body>
 
-<div id="control">
-
-<header>
-
-<div id="logo">
-
-NETFLIX GAMES
-
-</div>
-
-<div id="estado">
-
-Conectando...
-
-</div>
-
-</header>
-
-<main>
-
-<div id="joystick">
-
-<div id="stick"></div>
-
-</div>
-
-<div id="botones">
-
-<button id="y" class="boton">Y</button>
-
-<button id="x" class="boton">X</button>
-
-<button id="b" class="boton">B</button>
-
-<button id="a" class="boton">A</button>
-
-</div>
-
-</main>
-
-<footer>
-
-<button id="menu" class="menuBtn">
-
-☰ MENÚ
-
-</button>
-
-<button id="inicio" class="menuBtn">
-
-⌂ INICIO
-
-</button>
-
-<button id="pausa" class="menuBtn">
-
-⏸ PAUSA
-
-</button>
-
-</footer>
-
-<script>
-
-//=====================================
-// FIREBASE
-//=====================================
-
-const firebaseConfig = {
-
-    databaseURL: "https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
-
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const db = firebase.database();
-
-
-
-
-//=====================================
-// LEER ID DE SALA
-//=====================================
-
-const params = new URLSearchParams(location.search);
-
-const sessionId = params.get("sala");
-
-const estado = document.getElementById("estado");
-
-if(!sessionId){
-
-    estado.innerHTML = "Sin sala";
-
-    estado.style.color = "#ff5555";
-
-    throw new Error("No existe el parámetro sala");
-
-}
-
-estado.innerHTML = "Conectado";
-
-
-
-
-//=====================================
-// VIBRACIÓN
-//=====================================
-
-function vibrar(ms=25){
-
-    if(navigator.vibrate){
-
-        navigator.vibrate(ms);
-
-    }
-
-}
-
-
-
-
-//=====================================
-// ENVIAR A FIREBASE
-//=====================================
-
-function enviar(accion,valor=null){
-
-    db.ref("sesiones/"+sessionId).set({
-
-        accion:accion,
-
-        valor:valor,
-
-        tiempo:Date.now()
-
-    });
-
-}
-
-
-
-
-//=====================================
-// BOTONES A B X Y
-//=====================================
-
-["a","b","x","y"].forEach(id=>{
-
-    const boton=document.getElementById(id);
-
-    boton.addEventListener("touchstart",()=>{
-
-        vibrar();
-
-        enviar(id.toUpperCase());
-
-    });
-
-    boton.addEventListener("mousedown",()=>{
-
-        enviar(id.toUpperCase());
-
-    });
-
-});
-
-
-
-
-//=====================================
-// BOTONES MENU
-//=====================================
-
-document.getElementById("menu").onclick=()=>{
-
-    vibrar();
-
-    enviar("MENU");
-
-};
-
-document.getElementById("inicio").onclick=()=>{
-
-    vibrar();
-
-    enviar("HOME");
-
-};
-
-document.getElementById("pausa").onclick=()=>{
-
-    vibrar();
-
-    enviar("PAUSA");
-
-};
-
-
-
-
-//=====================================
-// JOYSTICK
-//=====================================
-
-const joystick=document.getElementById("joystick");
-
-const stick=document.getElementById("stick");
-
-let centroX=95;
-
-let centroY=95;
-
-let radio=55;
-
-let activo=false;
-
-function moverStick(x,y){
-
-    let dx=x-centroX;
-
-    let dy=y-centroY;
-
-    let distancia=Math.sqrt(dx*dx+dy*dy);
-
-    if(distancia>radio){
-
-        dx*=radio/distancia;
-
-        dy*=radio/distancia;
-
-    }
-
-    stick.style.left=(55+dx)+"px";
-
-    stick.style.top=(55+dy)+"px";
-
-    if(Math.abs(dx)>Math.abs(dy)){
-
-        if(dx>25){
-
-            enviar("DERECHA");
-
+    <div id="pantalla-lobby" class="contenedor visible">
+        <h2 style="color: #E50914;">CONECTADO</h2>
+        <p class="texto-espera" style="margin-top: 30px;">Esperando que el dueño de la sala inicie la partida en la TV...</p>
+    </div>
+
+    <div id="pantalla-pistas" class="contenedor">
+        <div id="lbl-rol" class="rol-alerta">Cargando rol...</div>
+        <div id="contenedor-palabra" style="font-size: 22px; margin-bottom: 20px; font-weight: bold;"></div>
+        
+        <div id="estado-turno-mensaje" class="texto-espera" style="color: #ffd32a; margin-bottom: 15px;">MIRA LA PANTALLA GRANDE...</div>
+        
+        <div id="botones-incisos" class="cuadrilla-botones">
+            </div>
+    </div>
+
+    <div id="pantalla-votacion" class="contenedor">
+        <h2 style="color: #ff4757;">¿QUIÉN ES EL IMPOSTOR?</h2>
+        <p style="color: #aaa; margin: 0 0 15px 0;">¡Vota por el sospechoso o decide omitir!</p>
+        
+        <div id="botones-voto" class="cuadrilla-botones">
+            </div>
+    </div>
+
+    <div id="pantalla-espera" class="contenedor">
+        <h2>ACCIÓN REGISTRADA</h2>
+        <p class="texto-espera" style="margin-top: 40px;">Tu respuesta fue enviada de forma segura.<br><br>¡Mira el tablero principal!</p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script>
+        // CONFIGURACIÓN DE TU CONFIG DE FIREBASE (Usa la misma de tu pantalla.html)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_AUTH_DOMAIN",
+            databaseURL: "TU_DATABASE_URL",
+            projectId: "TU_PROJECT_ID",
+            storageBucket: "TU_STORAGE_BUCKET",
+            messagingSenderId: "TU_MESSAGING_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Identificadores únicos del control (ej: control.html?sala=SALA123&id=mando_99)
+        const parametros = new URLSearchParams(window.location.search);
+        const idSala = parametros.get("sala") || "sala_test";
+        // Si no existe un ID de control en la URL, generamos uno único aleatorio para este celular
+        let idControlador = parametros.get("id");
+        if (!idControlador) {
+            idControlador = "cel_" + Math.random().toString(36).substr(2, 9);
         }
 
-        else if(dx<-25){
+        // Registrar presencia inicial en la rama de comandos para que el lobby del juego nos detecte
+        db.ref(`sesiones/${idSala}/comandos`).push({
+            accion: "CONEXION_CONTROL",
+            idControlador: idControlador
+        });
 
-            enviar("IZQUIERDA");
+        // --- ESCUCHAR ACTUALIZACIONES DE NUESTRO JUGADOR DESDE LA PANTALLA GRANDE ---
+        db.ref(`sesiones/${idSala}/jugadores/${idControlador}`).on("value", (snapshot) => {
+            const datos = snapshot.val();
+            if (!datos) {
+                cambiarPantallaUI("pantalla-lobby");
+                return;
+            }
 
+            // CASO 1: Fase de visualización de Palabra / Rol y Elección de Incisos
+            if (datos.estadoPanel === "ELEGIR_PISTA") {
+                cambiarPantallaUI("pantalla-pistas");
+                
+                const contenedorRol = document.getElementById("lbl-rol");
+                const contenedorPalabra = document.getElementById("contenedor-palabra");
+                const txtTurno = document.getElementById("estado-turno-mensaje");
+                const divIncisos = document.getElementById("botones-incisos");
+
+                // Configurar visualización según rol
+                if (datos.rol === "IMPOSTOR") {
+                    contenedorRol.innerText = "🕵️‍♂️ ERES EL IMPOSTOR";
+                    contenedorRol.className = "rol-alerta rol-impostor";
+                    contenedorPalabra.innerText = "¡No sabes la palabra! Miente.";
+                } else {
+                    contenedorRol.innerText = "📝 ERES INOCENTE";
+                    contenedorRol.className = "rol-alerta rol-inocente";
+                    contenedorPalabra.innerText = `PALABRA: ${datos.palabra}`;
+                }
+
+                // Bloquear o desbloquear botones según sea tu turno de hablar
+                divIncisos.innerHTML = "";
+                if (datos.miTurno === true) {
+                    txtTurno.innerText = "💥 ¡ES TU TURNO! Elige un inciso:";
+                    txtTurno.style.color = "#2ed573";
+                    
+                    // Renderizar las 4 opciones enviadas por el juego equilibradamente
+                    datos.opciones.forEach(inciso => {
+                        const boton = document.createElement("button");
+                        boton.className = "btn-opcion";
+                        boton.innerText = inciso;
+                        boton.onclick = () => enviarIncisioElegido(inciso);
+                        divIncisos.appendChild(boton);
+                    });
+                } else {
+                    txtTurno.innerText = "Espera que los demás den sus pistas...";
+                    txtTurno.style.color = "#8e9bb0";
+                }
+            }
+
+            // CASO 2: Fase de Votación Abierta
+            if (datos.estadoPanel === "VOTACION") {
+                cambiarPantallaUI("pantalla-votacion");
+                const divVotos = document.getElementById("botones-voto");
+                divVotos.innerHTML = "";
+
+                // Generar los botones de los jugadores vivos en la sala sacados de Firebase
+                datos.opcionesVoto.forEach(target => {
+                    const boton = document.createElement("button");
+                    boton.className = "btn-opcion";
+                    
+                    // Impedir votar por uno mismo de forma limpia
+                    if (target.id === idControlador) {
+                        boton.innerText = `P${target.num} (Tú)`;
+                        boton.disabled = true;
+                        boton.style.opacity = "0.4";
+                    } else {
+                        boton.innerText = `Votar P${target.num}`;
+                        boton.onclick = () => enviarVotoProcesado(target.id);
+                    }
+                    divVotos.appendChild(boton);
+                });
+
+                // Añadir el botón universal de Omitir Voto al final
+                const btnOmitir = document.createElement("button");
+                btnOmitir.className = "btn-opcion btn-omitir";
+                btnOmitir.innerText = "🚫 Omitir Voto";
+                btnOmitir.onclick = () => enviarVotoProcesado("OMITIR");
+                divVotos.appendChild(btnOmitir);
+            }
+        });
+
+        // --- EMISORES DE ACCIONES HACIA LA PANTALLA GRANDE ---
+        function enviarIncisioElegido(textoInciso) {
+            cambiarPantallaUI("pantalla-espera");
+            
+            // Quitar bandera de turno en Firebase de forma inmediata
+            db.ref(`sesiones/${idSala}/jugadores/${idControlador}/miTurno`).set(false);
+
+            // Enviar respuesta a la cola de comandos de Firebase para que el iframe la ejecute
+            db.ref(`sesiones/${idSala}/comandos`).push({
+                accion: "PISTA_SELECCIONADA",
+                idControlador: idControlador,
+                inciso: textoInciso
+            });
         }
 
-    }
+        function enviarVotoProcesado(idObjetivo) {
+            cambiarPantallaUI("pantalla-espera");
 
-    else{
-
-        if(dy>25){
-
-            enviar("ABAJO");
-
+            db.ref(`sesiones/${idSala}/comandos`).push({
+                accion: "VOTO_PROCESADO",
+                idControlador: idControlador,
+                objetivo: idObjetivo
+            });
         }
 
-        else if(dy<-25){
-
-            enviar("ARRIBA");
-
+        function cambiarPantallaUI(idPantalla) {
+            document.querySelectorAll(".contenedor").forEach(p => p.classList.remove("visible"));
+            document.getElementById(idPantalla).classList.add("visible");
         }
-
-    }
-
-}
-
-function resetStick(){
-
-    stick.style.left="55px";
-
-    stick.style.top="55px";
-
-    enviar("CENTRO");
-
-}
-
-joystick.addEventListener("touchstart",(e)=>{
-
-    activo=true;
-
-    vibrar();
-
-});
-
-joystick.addEventListener("touchmove",(e)=>{
-
-    if(!activo)return;
-
-    const rect=joystick.getBoundingClientRect();
-
-    moverStick(
-
-        e.touches[0].clientX-rect.left,
-
-        e.touches[0].clientY-rect.top
-
-    );
-
-});
-
-joystick.addEventListener("touchend",()=>{
-
-    activo=false;
-
-    resetStick();
-
-});
-
-
-
-
-//=====================================
-// SOPORTE PARA MOUSE
-//=====================================
-
-joystick.addEventListener("mousedown",(e)=>{
-
-    activo=true;
-
-});
-
-document.addEventListener("mousemove",(e)=>{
-
-    if(!activo)return;
-
-    const rect=joystick.getBoundingClientRect();
-
-    moverStick(
-
-        e.clientX-rect.left,
-
-        e.clientY-rect.top
-
-    );
-
-});
-
-document.addEventListener("mouseup",()=>{
-
-    if(!activo)return;
-
-    activo=false;
-
-    resetStick();
-
-});
-
-
-
-
-
-//=====================================
-// EFECTOS VISUALES
-//=====================================
-
-document.querySelectorAll(".boton,.menuBtn").forEach((boton)=>{
-
-    boton.addEventListener("touchstart",()=>{
-
-        boton.style.boxShadow="0 0 25px #E50914";
-
-    });
-
-    boton.addEventListener("touchend",()=>{
-
-        boton.style.boxShadow="0 6px 12px rgba(0,0,0,.4)";
-
-    });
-
-    boton.addEventListener("mousedown",()=>{
-
-        boton.style.boxShadow="0 0 25px #E50914";
-
-    });
-
-    boton.addEventListener("mouseup",()=>{
-
-        boton.style.boxShadow="0 6px 12px rgba(0,0,0,.4)";
-
-    });
-
-});
-
-
-
-
-//=====================================
-// ANIMACIÓN DEL ESTADO
-//=====================================
-
-let visible=true;
-
-setInterval(()=>{
-
-    estado.style.opacity=visible?"1":"0.5";
-
-    visible=!visible;
-
-},800);
-
-
-
-
-//=====================================
-// EVITAR ZOOM
-//=====================================
-
-document.addEventListener("gesturestart",(e)=>{
-
-    e.preventDefault();
-
-});
-
-document.addEventListener("dblclick",(e)=>{
-
-    e.preventDefault();
-
-});
-
-
-
-
-//=====================================
-// BLOQUEAR MENÚ CONTEXTUAL
-//=====================================
-
-document.addEventListener("contextmenu",(e)=>{
-
-    e.preventDefault();
-
-});
-
-
-
-
-//=====================================
-// TECLADO PARA PRUEBAS EN PC
-//=====================================
-
-document.addEventListener("keydown",(e)=>{
-
-    switch(e.key){
-
-        case "ArrowUp":
-
-            enviar("ARRIBA");
-
-        break;
-
-        case "ArrowDown":
-
-            enviar("ABAJO");
-
-        break;
-
-        case "ArrowLeft":
-
-            enviar("IZQUIERDA");
-
-        break;
-
-        case "ArrowRight":
-
-            enviar("DERECHA");
-
-        break;
-
-        case "a":
-
-        case "A":
-
-            enviar("A");
-
-        break;
-
-        case "b":
-
-        case "B":
-
-            enviar("B");
-
-        break;
-
-        case "x":
-
-        case "X":
-
-            enviar("X");
-
-        break;
-
-        case "y":
-
-        case "Y":
-
-            enviar("Y");
-
-        break;
-
-        case "Escape":
-
-            enviar("MENU");
-
-        break;
-
-        case "Enter":
-
-            enviar("PAUSA");
-
-        break;
-
-    }
-
-});
-
-
-
-
-//=====================================
-// MENSAJE DE BIENVENIDA
-//=====================================
-
-console.log("Netflix Games Controller iniciado correctamente.");
-
-</script>
-
+    </script>
 </body>
 </html>
