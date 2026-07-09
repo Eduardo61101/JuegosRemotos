@@ -3,17 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Pantalla del Juego</title>
-    <!-- NUEVA LIBRERÍA DE QR (Mucho más estable y moderna) -->
+    <!-- NUEVA LIBRERÍA DE QR (Estable y moderna) -->
     <script src="https://cloudflare.com"></script>
-    <!-- Librerías de Firebase V8 -->
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
+    
+    <!-- ENLACES CORREGIDOS DE FIREBASE V8 (Vía cdnjs para evitar el error "not defined") -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
+    
     <style>
         body { text-align: center; font-family: Arial, sans-serif; background: #141414; color: white; margin: 0; padding: 20px; }
         h1 { color: #E50914; margin-bottom: 5px; }
         #contenedor-qr { background: white; padding: 20px; display: inline-block; border-radius: 10px; margin: 15px; }
         #contenedor-qr p { color: black; margin: 0 0 15px 0; font-weight: bold; }
-        #canvas-qr { display: block; margin: 0 auto; } /* El QR ahora es un canvas */
+        #canvas-qr { display: block; margin: 0 auto; }
         #canvas { background: #000; border: 3px solid #333; display: block; margin: 20px auto; border-radius: 8px; }
         #estado { font-weight: bold; color: #ffc107; }
     </style>
@@ -24,7 +26,6 @@
     
     <div id="contenedor-qr">
         <p>Escanea con tu celular</p>
-        <!-- Elemento Canvas donde la nueva librería pintará el QR -->
         <canvas id="canvas-qr"></canvas>
     </div>
     
@@ -42,14 +43,14 @@
         // 2. CREAR ID DE SESIÓN ÚNICO
         const sessionId = "sala_" + Math.floor(Math.random() * 90000 + 10000);
 
-        // 3. GENERAR EL CÓDIGO QR DIRECTO A TU CONTROL USANDO QRIOUS
+        // 3. GENERAR EL CÓDIGO QR DIRECTO A TU CONTROL
         const urlControl = "https://eduardo61101.github.io/JuegosRemotos/control.html" + sessionId;
         
         const qr = new QRious({
             element: document.getElementById('canvas-qr'),
             value: urlControl,
             size: 180,
-            level: 'H' // Alta calidad de escaneo
+            level: 'H'
         });
 
         // 4. LÓGICA DEL JUEGO (Lienzo y Personaje)
@@ -60,7 +61,7 @@
 
         function dibujar() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#E50914"; // Cuadro rojo estilo Netflix
+            ctx.fillStyle = "#E50914"; 
             ctx.fillRect(posX, posY, 40, 40);
         }
         dibujar();
