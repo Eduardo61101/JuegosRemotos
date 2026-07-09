@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Palabra Oculta: Impostor - Estudio Sermiteop</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0b10;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #pantalla-principal {
+            width: 850px;
+            height: 580px;
+            background: #12131c;
+            border: 4px solid #333;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 30px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .btn-rojo {
+            background: #E50914;
+            color: white;
+            border: none;
+            padding: 16px 38px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
+        }
+        .btn-verde {
+            background: #2ed573;
+            color: white;
+            border: none;
+            padding: 16px 38px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);
+        }
+        .lista-jugadores {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 25px;
+            width: 100%;
+        }
+        .tarjeta-jugador {
+            width: 160px;
+            padding: 20px 10px;
+            background: #1c1d2a;
+            border-radius: 8px;
+            border: 2px dashed #444;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+        .tarjeta-jugador.activo { border-style: solid; color: white; background: #222536; }
+        .tarjeta-jugador.muerto { opacity: 0.3; border-color: #555 !important; background: #111 !important; color: #555 !important; text-decoration: line-through; }
+        .globo-pista {
+            margin-top: 10px;
+            background: #fff;
+            color: #000;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+            word-wrap: break-word;
+        }
+        #votos-recibidos {
+            position: absolute;
+            top: -15px;
+            right: -10px;
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+            display: none;
+        }
+        .animar-salto { transform: translateY(-20px); }
+        #estado-sala { font-size: 16px; color: #ffd32a; font-weight: bold; margin-top: 15px; }
+        
+        /* Contenedores de fases */
+        .fase { display: none; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: center; }
+        .fase.visible { display: flex; }
+    </style>
+</head>
+<body>
+
+    <div style="font-size: 16px; margin-bottom: 12px; font-weight: bold; color: #8e9bb0; letter-spacing: 1px;">SALA DE DEDUCCIÓN SOCIAL</div>
+
+    <div id="pantalla-principal">
+        
+        <div id="fase-lobby" class="fase visible">
+            <h1 style="color: #E50914; font-size: 40px; margin: 0 0 10px 0;">¿QUIÉN ES EL IMPOSTOR?</h1>
+            <p style="color: #aaa; font-size: 17px; margin: 0;">Rondas de pistas por turnos. Mínimo 3 jugadores obligatorios.</p>
+            
+            <div id="lobby-slots" class="lista-jugadores">
+                </div>
+            <div id="estado-sala">Esperando que ingresen jugadores...</div>
+            <button id="btnIniciarJuego" class="btn-rojo" style="display: none;" onclick="prepararPartida()">¡REPARTIR ROLES!</button>
+        </div>
+
+        <div id="fase-debate" class="fase">
+            <h1 id="letrero-turno" style="color: #ffd32a; font-size: 34px; margin: 0 0 20px 0;">TURNO DE: JUGADOR 1</h1>
+            
+            <div id="debate-slots" class="lista-jugadores"></div>
+            
+            <button id="btnForzarVotacion" class="btn-rojo" style="display: none; background: #ff4757;" onclick="abrirVotacionGlobal()">🚨 ABRIR VOTACIONES</button>
+        </div>
+
+        <div id="fase-votacion" class="fase">
+            <h1 style="color: #ff4757; font-size: 38px; margin: 0 0 10px 0;">¡VOTACIÓN EN CURSO!</h1>
+            <p style="color: #aaa; margin: 0 0 25px 0;">Selecciona a tu sospechoso u omite el voto desde tu dispositivo móvil</p>
+            
+            <div id="votacion-slots" class="lista-jugadores"></div>
+            
+            <div id="voto-omitido-ui" style="margin-top: 30px; font-size: 20px; color: #ffd32a; font-weight: bold; display: none;">
+                Votos para Omitir: <span id="lbl-votos-omitir">0</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Diccionario de palabras con 2 incisos Verdaderos y 2 Falsos exactos para cada una
+        const diccionarioSecreto = [
+            { palabra: "Almohada", v: ["Tela", "Dormir"], f: ["Metal", "Agua"] },
+            { palabra: "Computadora", v: ["Teclado", "Internet"], f: ["Fuego", "Planta"] },
+            { palabra: "Fútbol", v: ["Balón", "Cancha"], f: ["Cine", "Cocina"] },
+            { palabra: "Manzana", v: ["Fruta", "Árbol"], f: ["Espejo", "Rueda"] },
+            { palabra: "Avión", v: ["Volar", "Cielo"], f: ["Submarino", "Tierra"] },
+            { palabra: "Helado", v: ["Frío", "Postre"], f: ["Caliente", "Piedra"] }
+        ];
+
+        let jugadores = []; 
+        let controlesMapeados = {}; 
+        let partidaActiva = false;
+        
+        let palabraRonda = {};
+        let idImpostor = "";
+        let turnoActualIdx = 0;
+        let votos = {}; // Almacena quién votó por quién
+        let votosOmitidos = 0;
+        let jugadoresVotaron = Set;
+
+        const coloresP = ["#ff4757", "#2ed573", "#1e90ff", "#ffa500", "#9b59b6", "#00d2d3", "#ff9ff3", "#feca57"];
+
+        function actualizarLobbyVisual() {
+            const contenedor = document.getElementById("lobby-slots");
+            contenedor.innerHTML = "";
+            jugadores.forEach((j, idx) => {
+                contenedor.innerHTML += `
+                    <div class="tarjeta-jugador activo" style="border-color: ${coloresP[idx % coloresP.length]}; color: ${coloresP[idx % coloresP.length]}">
+                        P${idx + 1}<br><span style="font-size:12px; color:#fff;">Conectado</span>
+                    </div>
+                `;
+            });
+
+            const txt = document.getElementById("estado-sala");
+            const btn = document.getElementById("btnIniciarJuego");
+            if (jugadores.length >= 3) {
+                txt.innerText = `¡Sala lista con ${jugadores.length} jugadores!`;
+                txt.style.color = "#2ed573";
+                btn.style.display = "block";
+            } else {
+                txt.innerText = `Jugadores en la sala: ${jugadores.length}. Se necesitan mínimo 3.`;
+                txt.style.color = "#ffd32a";
+                btn.style.display = "none";
+            }
+        }
+
+        // --- SISTEMA INTERACTIVO DE ASIGNACIÓN Y PISTAS POR TURNOS ---
+        function prepararPartida() {
+            partidaActiva = true;
+            jugadoresVotaron = new Set();
+            votosOmitidos = 0;
+            votos = {};
+            
+            // Inicializar contadores de votos
+            jugadores.forEach(j => { votos[j.id] = 0; j.vivo = true; j.pistaDada = ""; });
+
+            // Elegir palabra e impostor
+            palabraRonda = diccionarioSecreto[Math.floor(Math.random() * diccionarioSecreto.length)];
+            const impostorAleatorio = jugadores[Math.floor(Math.random() * jugadores.length)];
+            idImpostor = impostorAleatorio.id;
+
+            // Enviar configuraciones personalizadas a los controles celulares
+            jugadores.forEach((j, idx) => {
+                let datosControl = {};
+                if (j.id === idImpostor) {
+                    datosControl = {
+                        rol: "IMPOSTOR",
+                        opciones: ["Madera", "Electricidad", "Líquido", "Deporte"] // Opciones trampa genéricas a ciegas
+                    };
+                } else {
+                    // Mezclar de forma balanceada 2 verdaderas y 2 falsas
+                    const combinadas = [...palabraRonda.v, ...palabraRonda.f].sort(() => Math.random() - 0.5);
+                    datosControl = {
+                        rol: "INOCENTE",
+                        palabra: palabraRonda.palabra,
+                        opciones: combinadas
+                    };
+                }
+
+                // Comunicar al script padre de pantalla.html para que actualice la interfaz de ese celular específico
+                window.parent.postMessage({
+                    accion: "CONFIGURAR_CONTROL_JUEGO",
+                    idControlador: j.id,
+                    numeroJugador: idx + 1,
+                    datos: datosControl
+                }, "*");
+            });
+
+            iniciarFaseDebate();
+        }
+
+        function iniciarFaseDebate() {
+            cambiarFaseUI("fase-debate");
+            dibujarTableroDebate();
+            turnoActualIdx = 0;
+            evaluarTurnoSiguiente();
+        }
+
+        function dibujarTableroDebate() {
+            const contenedor = document.getElementById("debate-slots");
+            contenedor.innerHTML = "";
+            jugadores.forEach((j, idx) => {
+                contenedor.innerHTML += `
+                    <div id="avatar-debate-${j.id}" class="tarjeta-jugador ${j.vivo ? 'activo' : 'muerto'}" style="border-color: ${coloresP[idx % coloresP.length]}">
+                        P${idx + 1}
+                        <div id="globo-${j.id}" class="globo-pista"></div>
+                    </div>
+                `;
+            });
+        }
+
+        function evaluarTurnoSiguiente() {
+            // Buscar el próximo jugador vivo
+            if (turnoActualIdx >= jugadores.length) {
+                // Todos dieron su pista, habilitar botón de votación en pantalla
+                document.getElementById("letrero-turno").innerText = "¡TODOS DIERON SU PISTA!";
+                document.getElementById("btnForzarVotacion").style.display = "block";
+                return;
+            }
+
+            let jActual = jugadores[turnoActualIdx];
+            if (!jActual.vivo) {
+                turnoActualIdx++;
+                evaluarTurnoSiguiente();
+                return;
+            }
+
+            document.getElementById("letrero-turno").innerText = `TURNO DE: JUGADOR ${turnoActualIdx + 1}`;
+            
+            // Avisar al control del jugador actual que ya puede elegir su inciso
+            window.parent.postMessage({ accion: "ACTIVAR_TURNO_CELULAR", idControlador: jActual.id }, "*");
+        }
+
+        function abrirVotacionGlobal() {
+            cambiarFaseUI("fase-votacion");
+            document.getElementById("btnForzarVotacion").style.display = "none";
+            
+            // Dibujar tablero votación
+            const contenedor = document.getElementById("votacion-slots");
+            contenedor.innerHTML = "";
+            jugadores.forEach((j, idx) => {
+                contenedor.innerHTML += `
+                    <div id="avatar-voto-${j.id}" class="tarjeta-jugador ${j.vivo ? 'activo' : 'muerto'}" style="border-color: ${coloresP[idx % coloresP.length]}">
+                        P${idx + 1}
+                        <div id="votos-recibidos-${j.id}" class="votos-recibidos">0</div>
+                        <div style="font-size:11px; margin-top:8px; color:#aaa;" id="status-voto-${j.id}">${j.vivo ? '⏳ Esperando...' : 'ELIMINADO'}</div>
+                    </div>
+                `;
+            });
+            document.getElementById("voto-omitido-ui").style.display = "block";
+            document.getElementById("lbl-votos-omitir").innerText = "0";
+
+            // Enviar orden de votación a todos los controles que sigan vivos
+            const listaVivos = jugadores.filter(j => j.vivo).map((j, idx) => ({ id: j.id, num: jugadores.indexOf(j) + 1 }));
+            
+            jugadores.forEach(j => {
+                if (j.vivo) {
+                    window.parent.postMessage({
+                        accion: "MOSTRAR_BOTONES_VOTO_CELULAR",
+                        idControlador: j.id,
+                        opcionesVoto: listaVivos
+                    }, "*");
+                }
+            });
+        }
+
+        // --- RECEPCIÓN DE MENSAJES DESDE LOS CONTROLES SMARTPHONES ---
+        window.addEventListener("message", (evento) => {
+            const datos = evento.data;
+            if (!datos || !datos.accion) return;
+
+            const idMando = datos.idControlador || datos.idDispositivo || "anonimo";
+
+            // Registro en Lobby inicial
+            if (!partidaActiva) {
+                if (!controlesMapeados[idMando]) {
+                    controlesMapeados[idMando] = true;
+                    jugadores.push({ id: idMando, vivo: true, pistaDada: "" });
+                    actualizarLobbyVisual();
+                }
+                return;
+            }
+
+            // Procesar Pista en su turno correspondiente
+            if (datos.accion === "PISTA_SELECCIONADA") {
+                let jTurnoActual = jugadores[turnoActualIdx];
+                if (jTurnoActual && jTurnoActual.id === idMando) {
+                    jTurnoActual.pistaDada = datos.inciso;
+                    
+                    // Hacer saltar su tarjeta animadamente en la pantalla grande
+                    const avatar = document.getElementById(`avatar-debate-${jTurnoActual.id}`);
+                    const globo = document.getElementById(`globo-${jTurnoActual.id}`);
+                    
+                    avatar.classList.add("animar-salto");
+                    globo.innerText = `"${datos.inciso}"`;
+                    globo.style.display = "block";
+                    
+                    setTimeout(() => avatar.classList.remove("animar-salto"), 600);
+
+                    // Avanzar al siguiente turno
+                    turnoActualIdx++;
+                    evaluarTurnoSiguiente();
+                }
+            }
+
+            // Procesar Registro de Votación Dinámico
+            if (datos.accion === "VOTO_PROCESADO") {
+                if (jugadoresVotaron.has(idMando)) return; // Evitar doble voto
+                jugadoresVotaron.add(idMando);
+
+                // Cambiar estado en pantalla grande (Buzón oculto)
+                document.getElementById(`status-voto-${idMando}`).innerText = "✅ Listo";
+                document.getElementById(`status-voto-${idMando}`).style.color = "#2ed573";
+
+                if (datos.objetivo === "OMITIR") {
+                    votosOmitidos++;
+                } else {
+                    votos[datos.objetivo]++;
+                }
+
+                // Si todos los sobrevivientes ya votaron, ejecutar el escrutinio
+                const totalVivos = jugadores.filter(j => j.vivo).length;
+                if (jugadoresVotaron.size >= totalVivos) {
+                    ejecutarEscrutinioFinal();
+                }
+            }
+        });
+
+        function ejecutarEscrutinioFinal() {
+            // Mostrar los números reales de votos acumulados en las tarjetas animadamente
+            jugadores.forEach(j => {
+                if (j.vivo) {
+                    const uiVotos = document.getElementById(`votos-recibidos-${j.id}`);
+                    if (votos[j.id] > 0) {
+                        uiVotos.innerText = votos[j.id];
+                        uiVotos.style.display = "flex";
+                    }
+                }
+            });
+            document.getElementById("lbl-votos-omitir").innerText = votosOmitidos;
+
+            setTimeout(() => {
+                // Encontrar el más votado
+                let maxVotos = votosOmitidos;
+                let expulsadoId = "OMITIR";
+                let empate = false;
+
+                jugadores.forEach(j => {
+                    if (j.vivo) {
+                        if (votos[j.id] > maxVotos) {
+                            maxVotos = votos[j.id];
+                            expulsadoId = j.id;
+                            empate = false;
+                        } else if (votos[j.id] === maxVotos && maxVotos > 0) {
+                            empate = true;
+                        }
+                    }
+                });
+
+                if (empate || expulsadoId === "OMITIR") {
+                    alert("¡Votación Omitida o Empate! Nadie es expulsado de la sala. Iniciando siguiente ronda...");
+                    reiniciarRondaLimpia();
+                } else {
+                    // Eliminar al jugador más votado
+                    let jugadorExpulsado = jugadores.find(j => j.id === expulsadoId);
+                    jugadorExpulsado.vivo = false;
+                    let nJugador = jugadores.indexOf(jugadorExpulsado) + 1;
+
+                    if (expulsadoId === idImpostor) {
+                        alert(`¡P${nJugador} HA SIDO ELIMINADO! Era el IMPOSTOR 🕵️‍♂️. ¡Los inocentes ganan la partida!`);
+                        finalizarPartidaCompleta();
+                    } else {
+                        alert(`¡P${nJugador} HA SIDO ELIMINADO! No era el Impostor. La sospecha continúa...`);
+                        
+                        // Verificar si quedan suficientes jugadores para seguir jugando
+                        const vivosRestantes = jugadores.filter(j => j.vivo).length;
+                        if (vivosRestantes <= 2) {
+                            alert("¡El Impostor ha logrado reducir al grupo! ¡EL IMPOSTOR GANA LA PARTIDA! 🕵️‍♂️🔥");
+                            finalizarPartidaCompleta();
+                        } else {
+                            reiniciarRondaLimpia();
+                        }
+                    }
+                }
+            }, 2500);
+        }
+
+        function reiniciarRondaLimpia() {
+            jugadoresVotaron = new Set();
+            votosOmitidos = 0;
+            jugadores.forEach(j => votos[j.id] = 0);
+            iniciarFaseDebate();
+        }
+
+        function finalizarPartidaCompleta() {
+            partidaActive = false;
+            partidaIniciada = false;
+            jugadores = [];
+            controlesMapeados = {};
+            cambiarFaseUI("fase-lobby");
+            actualizarLobbyVisual();
+        }
+
+        function cambiarFaseUI(idFase) {
+            document.querySelectorAll(".fase").forEach(f => f.classList.remove("visible"));
+            document.getElementById(idFase).classList.add("visible");
+        }
+    </script>
+</body>
+</html>
