@@ -1,72 +1,235 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Mando a Distancia</title>
-    <!-- Librerías de Firebase -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-    <style>
-        body { text-align: center; font-family: Arial, sans-serif; background: #141414; color: white; margin: 0; padding: 0; overflow: hidden; user-select: none; }
-        h2 { margin-top: 20px; color: #aaa; font-size: 18px; }
-        #estado { font-weight: bold; color: #2ed573; margin-bottom: 20px; }
-        
-        .cruceta {
-            display: grid;
-            grid-template-columns: repeat(3, 90px);
-            grid-template-rows: repeat(3, 90px);
-            gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
-        }
-        .btn {
-            background: #222; color: white; border: 3px solid #333; border-radius: 15px;
-            font-size: 28px; font-weight: bold; display: flex; align-items: center; justify-content: center;
-        }
-        .btn:active { background: #E50914; border-color: #ff4d4d; transform: scale(0.95); }
-        .b-arriba { grid-column: 2; grid-row: 1; }
-        .b-izq { grid-column: 1; grid-row: 2; }
-        .b-der { grid-column: 3; grid-row: 2; }
-        .b-abajo { grid-column: 2; grid-row: 3; }
-    </style>
+<title>Control - Netflix Games</title>
+
+<!-- Firebase -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+    background:#141414;
+    color:white;
+    text-align:center;
+    user-select:none;
+}
+
+h1{
+    margin-top:20px;
+    color:#E50914;
+}
+
+#estado{
+    margin-top:10px;
+    color:#2ed573;
+    font-weight:bold;
+}
+
+.cruceta{
+    width:310px;
+    margin:40px auto;
+    display:grid;
+    grid-template-columns:repeat(3,90px);
+    grid-template-rows:repeat(3,90px);
+    gap:20px;
+}
+
+.btn{
+
+    border:none;
+    border-radius:18px;
+
+    background:#222;
+
+    color:white;
+
+    font-size:30px;
+
+    font-weight:bold;
+
+    transition:.15s;
+
+}
+
+.btn:active{
+
+    background:#E50914;
+
+    transform:scale(.95);
+
+}
+
+.arriba{
+
+grid-column:2;
+
+grid-row:1;
+
+}
+
+.izquierda{
+
+grid-column:1;
+
+grid-row:2;
+
+}
+
+.derecha{
+
+grid-column:3;
+
+grid-row:2;
+
+}
+
+.abajo{
+
+grid-column:2;
+
+grid-row:3;
+
+}
+
+</style>
+
 </head>
 <body>
 
-    <h2>Mando de Control</h2>
-    <div id="estado">Sincronizado con la pantalla principal</div>
+<h1>Control</h1>
 
-    <div class="cruceta">
-        <button class="btn b-arriba" onclick="enviar('ARRIBA')">▲</button>
-        <button class="btn b-izq" onclick="enviar('IZQUIERDA')">◀</button>
-        <button class="btn b-der" onclick="enviar('DERECHA')">▶</button>
-        <button class="btn b-abajo" onclick="enviar('ABAJO')">▼</button>
-    </div>
+<p id="estado">
+Conectando...
+</p>
 
-    <script>
-        // 1. CONFIGURACIÓN DE TU REALTIME DATABASE
-        const firebaseConfig = {
-            databaseURL: "https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+<div class="cruceta">
 
-        // 2. LEER EL ID DE LA SALA DESDE LA URL DEL QR
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('sala');
+<button class="btn arriba">▲</button>
 
-        // 3. ENVIAR EL BOTÓN PRESIONADO A FIREBASE
-        function enviar(direccion) {
-            if (sessionId) {
-                db.ref("sesiones/" + sessionId).set({
-                    accion: direccion,
-                    timestamp: Date.now() // Forzar cambio en tiempo real
-                });
-            } else {
-                document.getElementById("estado").innerHTML = "Error: Falta ID de sala en URL.";
-                document.getElementById("estado").style.color = "#ff4d4d";
-            }
-        }
-    </script>
+<button class="btn izquierda">◀</button>
+
+<button class="btn derecha">▶</button>
+
+<button class="btn abajo">▼</button>
+
+</div>
+
+<script>
+
+//===========================
+// FIREBASE
+//===========================
+
+const firebaseConfig={
+
+databaseURL:"https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
+
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db=firebase.database();
+
+//===========================
+// LEER SALA
+//===========================
+
+const parametros=new URLSearchParams(window.location.search);
+
+const sessionId=parametros.get("sala");
+
+//===========================
+
+const estado=document.getElementById("estado");
+
+if(!sessionId){
+
+estado.innerHTML="No se recibió ninguna sala.";
+
+estado.style.color="red";
+
+throw new Error("Falta el parámetro sala.");
+
+}
+
+//===========================
+
+estado.innerHTML="Conectado a "+sessionId;
+
+//===========================
+
+function enviar(accion){
+
+db.ref("sesiones/"+sessionId).set({
+
+accion:accion,
+
+timestamp:Date.now()
+
+});
+
+}
+
+//===========================
+// BOTONES
+//===========================
+
+document.querySelector(".arriba").onclick=()=>enviar("ARRIBA");
+
+document.querySelector(".abajo").onclick=()=>enviar("ABAJO");
+
+document.querySelector(".izquierda").onclick=()=>enviar("IZQUIERDA");
+
+document.querySelector(".derecha").onclick=()=>enviar("DERECHA");
+
+//===========================
+// TECLADO (si se abre en PC)
+//===========================
+
+document.addEventListener("keydown",(e)=>{
+
+switch(e.key){
+
+case "ArrowUp":
+
+enviar("ARRIBA");
+
+break;
+
+case "ArrowDown":
+
+enviar("ABAJO");
+
+break;
+
+case "ArrowLeft":
+
+enviar("IZQUIERDA");
+
+break;
+
+case "ArrowRight":
+
+enviar("DERECHA");
+
+break;
+
+}
+
+});
+
+</script>
+
 </body>
 </html>
