@@ -3,127 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Control Remoto Táctil</title>
-    <!-- Librería Conector PeerJS -->
-    <script src="https://unpkg.com"></script>
+    <title>Mando a Distancia</title>
+    <!-- Librerías de Firebase V8 -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
     <style>
-        body { 
-            text-align: center; 
-            font-family: 'Arial', sans-serif; 
-            background: #141414; 
-            color: white; 
-            margin: 0; 
-            padding: 0;
-            overflow: hidden; /* Evita que la pantalla se mueva por error al jugar */
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        h2 { margin-top: 30px; font-size: 20px; color: #aaa; }
-        #estado { font-weight: bold; color: #ffc107; margin-bottom: 20px; }
-
-        /* Contenedor de la cruceta de botones */
-        .control-pad {
+        body { text-align: center; font-family: Arial, sans-serif; background: #141414; color: white; margin: 0; padding: 0; overflow: hidden; user-select: none; }
+        h2 { margin-top: 20px; color: #aaa; font-size: 18px; }
+        #estado { font-weight: bold; color: #2ed573; margin-bottom: 20px; }
+        
+        .cruceta {
             display: grid;
             grid-template-columns: repeat(3, 90px);
             grid-template-rows: repeat(3, 90px);
             gap: 15px;
             justify-content: center;
-            align-content: center;
-            margin-top: 40px;
+            margin-top: 30px;
         }
-
-        /* Estilo general de los botones */
         .btn {
-            background: #222;
-            color: white;
-            border: 3px solid #333;
-            border-radius: 15px;
-            font-size: 28px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.4);
-            cursor: pointer;
+            background: #222; color: white; border: 3px solid #333; border-radius: 15px;
+            font-size: 28px; font-weight: bold; display: flex; align-items: center; justify-content: center;
         }
-
-        /* Efecto visual al presionar */
-        .btn:active {
-            background: #E50914; /* Rojo Netflix */
-            border-color: #ff4d4d;
-            transform: scale(0.95);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.6);
-        }
-
-        /* Posiciones específicas en la cuadrícula */
-        .btn-arriba    { grid-column: 2; grid-row: 1; }
-        .btn-izquierda { grid-column: 1; grid-row: 2; }
-        .btn-derecha   { grid-column: 3; grid-row: 2; }
-        .btn-abajo     { grid-column: 2; grid-row: 3; }
-        .vacio         { grid-column: 2; grid-row: 2; background: transparent; border: none; box-shadow: none; pointer-events: none; }
+        .btn:active { background: #E50914; border-color: #ff4d4d; transform: scale(0.95); }
+        .b-arriba { grid-column: 2; grid-row: 1; }
+        .b-izq { grid-column: 1; grid-row: 2; }
+        .b-der { grid-column: 3; grid-row: 2; }
+        .b-abajo { grid-column: 2; grid-row: 3; }
     </style>
 </head>
 <body>
 
-    <h2>Mando de Juego</h2>
-    <div id="estado">Conectando con la pantalla...</div>
+    <h2>Mando de Control</h2>
+    <div id="estado">Sincronizado con la pantalla principal</div>
 
-    <!-- Panel de control direccional -->
-    <div class="control-pad">
-        <button class="btn btn-arriba" id="ARRIBA">▲</button>
-        <button class="btn btn-izquierda" id="IZQUIERDA">◀</button>
-        <div class="vacio"></div> <!-- Centro vacío de la cruceta -->
-        <button class="btn btn-derecha" id="DERECHA">▶</button>
-        <button class="btn btn-abajo" id="ABAJO">▼</button>
+    <div class="cruceta">
+        <button class="btn b-arriba" onclick="enviar('ARRIBA')">▲</button>
+        <button class="btn b-izq" onclick="enviar('IZQUIERDA')">◀</button>
+        <button class="btn b-der" onclick="enviar('DERECHA')">▶</button>
+        <button class="btn b-abajo" onclick="enviar('ABAJO')">▼</button>
     </div>
 
     <script>
-        // 1. LEER EL ID DE LA SALA DESDE LA URL GENERADA POR EL QR
+        // 1. CONFIGURACIÓN DE TU REALTIME DATABASE
+        const firebaseConfig = {
+            databaseURL: "https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // 2. LEER EL ID DE LA SALA DESDE LA URL DEL QR
         const urlParams = new URLSearchParams(window.location.search);
-        const idSala = urlParams.get('sala');
+        const sessionId = urlParams.get('sala');
 
-        if (!idSala) {
-            document.getElementById("estado").innerHTML = "Error: QR inválido o falta ID de sala.";
-            document.getElementById("estado").style.color = "#ff4d4d";
-        } else {
-            // 2. INICIAR PEER EN EL CELULAR
-            const peer = new Peer();
-
-            peer.on('open', () => {
-                // Conectarse a la pantalla usando el ID obtenido del QR
-                const conexion = peer.connect(idSala);
-
-                conexion.on('open', () => {
-                    document.getElementById("estado").innerHTML = "¡Conectado con éxito! 🎮";
-                    document.getElementById("estado").style.color = "#2ed573";
-
-                    // 3. ACTIVAR LOS EVENTOS TÁCTILES PARA ENVIAR ÓRDENES
-                    configurarBoton("ARRIBA", conexion);
-                    configurarBoton("ABAJO", conexion);
-                    configurarBoton("IZQUIERDA", conexion);
-                    configurarBoton("DERECHA", conexion);
+        // 3. ENVIAR EL BOTÓN PRESIONADO A FIREBASE
+        function enviar(direccion) {
+            if (sessionId) {
+                db.ref("sesiones/" + sessionId).set({
+                    accion: direccion,
+                    timestamp: Date.now() // Forzar cambio en tiempo real
                 });
-
-                conexion.on('close', () => {
-                    document.getElementById("estado").innerHTML = "Conexión perdida con la pantalla.";
-                    document.getElementById("estado").style.color = "#ff4d4d";
-                });
-            });
-        }
-
-        // Función para que los botones envíen datos al tocarlos
-        function configurarBoton(idComando, conexion) {
-            const boton = document.getElementById(idComando);
-            
-            // Usamos 'touchstart' en lugar de 'click' para que responda al instante en celular
-            boton.addEventListener("touchstart", (e) => {
-                e.preventDefault(); // Evita zooms molestos del navegador
-                
-                // Hace vibrar el celular 30 milisegundos si es compatible
-                if (navigator.vibrate) navigator.vibrate(30); 
-                
-                conexion.send(idComando); // Envía la dirección ("ARRIBA", "ABAJO", etc.)
-            });
+            } else {
+                document.getElementById("estado").innerHTML = "Error: Falta ID de sala en URL.";
+                document.getElementById("estado").style.color = "#ff4d4d";
+            }
         }
     </script>
 </body>
