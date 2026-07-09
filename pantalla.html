@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pantalla del Juego (Consola)</title>
+    <!-- Librerías necesarias: Generador de QR y Conector PeerJS -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { 
+            text-align: center; 
+            font-family: 'Arial', sans-serif; 
+            background: #141414; 
+            color: white; 
+            margin: 0; 
+            padding: 20px;
+        }
+        h1 { margin-bottom: 5px; color: #E50914; } /* Estilo tipo Netflix */
+        #contenedor-conexion {
+            background: #222;
+            padding: 20px;
+            display: inline-block;
+            border-radius: 12px;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #qrcode { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            display: inline-block;
+        }
+        #estado { 
+            font-weight: bold; 
+            color: #ffc107; 
+            margin-top: 15px; 
+        }
+        #canvas { 
+            background: #000; 
+            border: 4px solid #333; 
+            display: block; 
+            margin: 20px auto; 
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Netflix Style - Pantalla de Juego</h1>
+    <p>Sincroniza tu dispositivo para empezar a jugar</p>
+    
+    <!-- Zona de sincronización por QR -->
+    <div id="contenedor-conexion">
+        <div id="qrcode"></div>
+        <div id="estado">Esperando conexión del celular...</div>
+    </div>
+
+    <!-- El lienzo del juego -->
+    <canvas id="canvas" width="500" height="400"></canvas>
+
+    <script>
+        // 1. CONFIGURACIÓN DEL JUEGO (Lienzo y Personaje)
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        
+        let jugadorX = 230;
+        let jugadorY = 180;
+        const tamanoJugador = 40;
+        const velocidad = 15;
+
+        function dibujarJuego() {
+            // Limpiar pantalla
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar fondo de cuadrícula simple
+            ctx.strokeStyle = "#1a1a1a";
+            for(let i=0; i<canvas.width; i+=40) ctx.strokeRect(i, 0, 40, canvas.height);
+            for(let i=0; i<canvas.height; i+=40) ctx.strokeRect(0, i, canvas.width, 40);
+
+            // Dibujar personaje (un cuadro rojo)
+            ctx.fillStyle = "#E50914"; 
+            ctx.fillRect(jugadorX, jugadorY, tamanoJugador, tamanoJugador);
+        }
+        dibujarJuego(); // Primer render
+
+        // 2. CONFIGURACIÓN DE LA CONEXIÓN (PeerJS)
+        // Creamos un ID aleatorio para esta sala de juego
+        const idSala = "sala-" + Math.floor(Math.random() * 90000 + 10000);
+        const peer = new Peer(idSala);
+
+        peer.on('open', (id) => {
+            console.log('ID de sala creado: ' + id);
+            
+            // Cambia esta URL por la dirección donde vayas a subir tu archivo control.html
+            // Si pruebas de forma local en tu casa, usa la IP de tu PC (ejemplo: http://192.168.1)
+            const urlControl = "https://tu-sitio-web.com" + id;
+
+            // Generar el código QR con el enlace correcto
+            new QRCode(document.getElementById("qrcode"), {
+                text: urlControl,
+                width: 180,
+                height: 180
+            });
+        });
+
+        // 3. ESCUCHAR CUANDO EL CELULAR SE CONECTE
+        peer.on('connection', (conn) => {
+            document.getElementById("estado").innerHTML = "¡Celular Conectado! 🎮";
+            document.getElementById("estado").style.color = "#2ed573";
+            
+            // Ocultar el QR tras conectarse para liberar espacio visual
+            setTimeout(() => {
+                document.getElementById("contenedor-conexion").style.display = "none";
+            }, 1500);
+
+            // Escuchar las órdenes (los datos enviados por el control)
+            conn.on('data', (data) => {
+                if (data === "ARRIBA" && jugadorY > 0) jugadorY -= velocidad;
+                if (data === "ABAJO" && jugadorY < canvas.height - tamanoJugador) jugadorY += velocidad;
+                if (data === "IZQUIERDA" && jugadorX > 0) jugadorX -= velocidad;
+                if (data === "DERECHA" && jugadorX < canvas.width - tamanoJugador) jugadorX += velocidad;
+                
+                dibujarJuego(); // Actualizar pantalla con la nueva posición
+            });
+        });
+    </script>
+</body>
+</html>
