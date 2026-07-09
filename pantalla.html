@@ -1,81 +1,159 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Pantalla del Juego</title>
-    
-    <!-- ÚNICA LIBRERÍA: PAQUETE COMPLETO DE FIREBASE V8 -->
-    <script src="https://cloudflare.com"></script>
-    
-    <style>
-        body { text-align: center; font-family: Arial, sans-serif; background: #141414; color: white; margin: 0; padding: 20px; }
-        h1 { color: #E50914; margin-bottom: 5px; }
-        #contenedor-qr { background: white; padding: 20px; display: inline-block; border-radius: 10px; margin: 15px; }
-        #contenedor-qr p { color: black; margin: 0 0 15px 0; font-weight: bold; }
-        #imagen-qr { display: block; margin: 0 auto; width: 180px; height: 180px; } /* Imagen nativa para el QR */
-        #canvas { background: #000; border: 3px solid #333; display: block; margin: 20px auto; border-radius: 8px; }
-        #estado { font-weight: bold; color: #ffc107; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Netflix Games</title>
+
+<!-- Firebase -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase.js"></script>
+
+<style>
+
+body{
+    margin:0;
+    background:#141414;
+    color:white;
+    font-family:Arial,Helvetica,sans-serif;
+    text-align:center;
+}
+
+h1{
+    color:#E50914;
+}
+
+#contenedor-qr{
+    display:inline-block;
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    margin-top:20px;
+}
+
+#contenedor-qr p{
+    color:black;
+    margin:0 0 10px;
+    font-weight:bold;
+}
+
+#imagenQR{
+    width:180px;
+    height:180px;
+}
+
+#estado{
+    margin:20px;
+    color:#ffd54f;
+    font-weight:bold;
+}
+
+iframe{
+    width:900px;
+    height:550px;
+    border:none;
+    border-radius:10px;
+    background:black;
+    margin-bottom:30px;
+}
+
+</style>
+
 </head>
 <body>
 
-    <h1>Netflix Games - Pantalla Principal</h1>
-    
-    <div id="contenedor-qr">
-        <p>Escanea con tu celular</p>
-        <!-- Cambiamos el canvas por una etiqueta de imagen normal -->
-        <img id="imagen-qr" alt="Código QR de conexión">
-    </div>
-    
-    <p id="estado">Esperando control remoto...</p>
-    <canvas id="canvas" width="400" height="400"></canvas>
+<h1>NETFLIX GAMES</h1>
 
-    <script>
-        // 1. CONFIGURACIÓN DE TU REALTIME DATABASE
-        const firebaseConfig = {
-            databaseURL: "https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+<div id="contenedor-qr">
+<p>Escanea con tu celular</p>
+<img id="imagenQR">
+</div>
 
-        // 2. CREAR ID DE SESIÓN ÚNICO
-        const sessionId = "sala_" + Math.floor(Math.random() * 90000 + 10000);
+<p id="estado">
+Esperando control...
+</p>
 
-        // 3. GENERAR EL ENLACE DEL CONTROL
-        const urlControl = "https://eduardo61101.github.io/JuegosRemotos/control.html" + sessionId;
-        
-        // 4. USAR LA API DE GOOGLE PARA CREAR EL QR AL INSTANTE SIN LIBRERÍAS
-        const urlGoogleQR = "https://qrserver.com" + encodeURIComponent(urlControl);
-        document.getElementById("imagen-qr").src = urlGoogleQR;
+<iframe id="juego"></iframe>
 
-        // 5. LÓGICA DEL JUEGO (Lienzo y Personaje)
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        let posX = 180;
-        let posY = 180;
+<script>
 
-        function dibujar() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#E50914"; 
-            ctx.fillRect(posX, posY, 40, 40);
-        }
-        dibujar();
+//=============================
+// FIREBASE
+//=============================
 
-        // 6. ESCUCHAR LOS COMANDOS DESDE TU FIREBASE
-        db.ref("sesiones/" + sessionId).on("value", (snapshot) => {
-            const datos = snapshot.val();
-            if (datos && datos.accion) {
-                document.getElementById("estado").innerHTML = "¡Control conectado y enviando órdenes! 🎮";
-                document.getElementById("estado").style.color = "#2ed573";
+const firebaseConfig={
+    databaseURL:"https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
+};
 
-                if (datos.accion === "ARRIBA" && posY > 0) posY -= 20;
-                if (datos.accion === "ABAJO" && posY < canvas.height - 40) posY += 20;
-                if (datos.accion === "IZQUIERDA" && posX > 0) posX -= 20;
-                if (datos.accion === "DERECHA" && posX < canvas.width - 40) posX += 20;
-                
-                dibujar();
-            }
-        });
-    </script>
+firebase.initializeApp(firebaseConfig);
+
+const db=firebase.database();
+
+//=============================
+// CREAR SALA
+//=============================
+
+const sessionId="sala_"+Math.random().toString(36).substring(2,10);
+
+//=============================
+// SABER QUÉ JUEGO ABRIR
+//=============================
+
+const parametros=new URLSearchParams(location.search);
+
+const juego=parametros.get("juego") || "snake";
+
+//=============================
+// CARGAR EL JUEGO
+//=============================
+
+document.getElementById("juego").src="juegos/"+juego+".html?sala="+sessionId;
+
+//=============================
+// URL DEL CONTROL
+//=============================
+
+const controlURL=
+
+location.origin+
+location.pathname.replace("pantalla.html","control.html")+
+"?sala="+sessionId;
+
+//=============================
+// GENERAR QR
+//=============================
+
+document.getElementById("imagenQR").src=
+
+"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data="+encodeURIComponent(controlURL);
+
+//=============================
+// ESCUCHAR FIREBASE
+//=============================
+
+db.ref("sesiones/"+sessionId).on("value",(snapshot)=>{
+
+const datos=snapshot.val();
+
+if(!datos)return;
+
+document.getElementById("estado").innerHTML="Control conectado 🎮";
+
+document.getElementById("estado").style.color="#2ed573";
+
+//Enviar al juego
+
+const iframe=document.getElementById("juego");
+
+iframe.contentWindow.postMessage({
+
+accion:datos.accion
+
+},"*");
+
+});
+
+</script>
+
 </body>
 </html>
