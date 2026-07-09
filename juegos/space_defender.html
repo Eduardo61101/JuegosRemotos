@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Space Defender - Netflix Games</title>
+    <style>
+        body {
+            margin: 0;
+            background: #050508;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #juegoCanvas {
+            border: 4px solid #E50914;
+            background: #07070f;
+            box-shadow: 0 0 30px rgba(229, 9, 20, 0.5);
+            border-radius: 8px;
+        }
+        #pantalla-info {
+            position: absolute;
+            top: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            display: flex;
+            gap: 50px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+        #mensaje {
+            position: absolute;
+            font-size: 28px;
+            font-weight: bold;
+            background: rgba(5, 5, 8, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #E50914;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(229, 9, 20, 0.7);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-info">
+        <div>SCORE: <span id="score" style="color: #f1c40f;">0</span></div>
+        <div>VIDAS: <span id="vidas" style="color: #e74c3c;">3</span></div>
+    </div>
+    <canvas id="juegoCanvas" width="850" height="500"></canvas>
+    <div id="mensaje"></div>
+
+    <script>
+        const canvas = document.getElementById("juegoCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const vidasElement = document.getElementById("vidas");
+        const mensajeElement = document.getElementById("mensaje");
+
+        const nave = { x: canvas.width / 2 - 25, y: canvas.height - 75, ancho: 50, alto: 50, velocidad: 9, direccion: "CENTRO" };
+        let disparos = [];
+        let enemigos = [];
+        let estrellas = [];
+        let explosiones = [];
+        let propulsion = [];
+        let score = 0;
+        let vidas = 3;
+        let juegoPausado = false;
+        let juegoTerminado = false;
+        let bucleJuego;
+        let intervaloEnemigos;
+
+        for(let i=0; i<60; i++) {
+            estrellas.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*2, v: Math.random()*2 + 0.5 });
+        }
+
+        function iniciarJuego() {
+            nave.x = canvas.width / 2 - 25;
+            nave.direccion = "CENTRO";
+            disparos = []; enemigos = []; explosiones = []; propulsion = [];
+            score = 0; vidas = 3;
+            scoreElement.innerText = score; vidasElement.innerText = vidas;
+            juegoTerminado = false; juegoPausado = false;
+            mensajeElement.style.display = "none";
+
+            clearInterval(bucleJuego);
+            clearInterval(intervaloEnemigos);
+            bucleJuego = setInterval(actualizar, 1000 / 60);
+            intervaloEnemigos = setInterval(generarEnemigo, 1200);
+        }
+
+        function generarEnemigo() {
+            if (juegoPausado || juegoTerminado) return;
+            const size = 40;
+            enemigos.push({ x: Math.random()*(canvas.width - size), y: -50, ancho: size, alto: size, velocidad: 2 + Math.random()*3 });
+        }
+
+        function dispararLaser() {
+            if (juegoPausado || juegoTerminado) return;
+            // Salen centrados desde la punta del cohete
+            disparos.push({ x: nave.x + nave.ancho/2 - 3, y: nave.y - 5, ancho: 6, alto: 18, velocidad: 11 });
+        }
+
+        function crearExplosion(x, y) {
+            for(let i=0; i<15; i++) {
+                explosiones.push({
+                    x: x, y: y,
+                    vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8,
+                    r: Math.random()*4 + 1, alpha: 1, color: Math.random() > 0.4 ? "#ff7f11" : "#ff1b1c"
+                });
+            }
+        }
+
+        function efectoPropulsion() {
+            if (juegoPausado || juegoTerminado) return;
+            propulsion.push({
+                x: nave.x + nave.ancho / 2 + (Math.random() - 0.5) * 8,
+                y: nave.y + nave.alto,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: Math.random() * 3 + 2,
+                r: Math.random() * 4 + 2,
+                alpha: 1
+            });
+        }
+
+        function dibujar() {
+            ctx.fillStyle = "#07070f";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Estrellas
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            estrellas.forEach(st => {
+                ctx.fillRect(st.x, st.y, st.r, st.r);
+                if(!juegoPausado) {
+                    st.y += st.v;
+                    if(st.y > canvas.height) st.y = 0;
+                }
+            });
+
+            // Propulsión trasera
+            propulsion.forEach((p, i) => {
+                ctx.fillStyle = `rgba(255, 69, 0, ${p.alpha})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+                if(!juegoPausado) {
+                    p.x += p.vx; p.y += p.vy; p.alpha -= 0.05;
+                }
+                if(p.alpha <= 0) propulsion.splice(i, 1);
+            });
+
+            // Explosiones
+            explosiones.forEach((ex, i) => {
+                ctx.fillStyle = ex.color;
+                ctx.globalAlpha = ex.alpha;
+                ctx.beginPath(); ctx.arc(ex.x, ex.y, ex.r, 0, Math.PI*2); ctx.fill();
+                ex.x += ex.vx; ex.y += ex.vy; ex.alpha -= 0.03;
+                if(ex.alpha <= 0)  explosiones.splice(i, 1);
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Disparos láser neón
+            ctx.shadowBlur = 10; ctx.shadowColor = "#39ff14";
+            ctx.fillStyle = "#39ff14";
+            disparos.forEach(d => ctx.fillRect(d.x, d.y, d.ancho, d.alto));
+            ctx.shadowBlur = 0;
+
+            // --- DIBUJAR JUGADOR ROTADO (EMOJI 🚀 DERECHO) ---
+            ctx.save();
+            // Trasladamos el origen al centro de la nave para que rote sobre su eje
+            ctx.translate(nave.x + nave.ancho / 2, nave.y + nave.alto / 2);
+            // Rotamos -45 grados (convertidos a radianes) para enderezarlo hacia arriba
+            ctx.rotate(-45 * Math.PI / 180);
+            ctx.font = `${nave.ancho}px Arial`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            // Dibujamos en (0,0) porque el origen ya fue trasladado
+            ctx.fillText("🚀", 0, 0);
+            ctx.restore();
+
+            // --- DIBUJAR ENEMIGOS (EMOJI 👾) ---
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            enemigos.forEach(e => {
+                ctx.font = `${e.ancho}px Arial`;
+                ctx.fillText("👾", e.x, e.y);
+            });
+        }
+
+        function actualizar() {
+            if (juegoPausado || juegoTerminado) return;
+
+            efectoPropulsion();
+
+            if (nave.direccion === "IZQUIERDA" && nave.x > 0) nave.x -= nave.velocidad;
+            if (nave.direccion === "DERECHA" && nave.x < canvas.width - nave.ancho) nave.x += nave.velocidad;
+
+            disparos.forEach((d, index) => {
+                d.y -= d.velocidad;
+                if (d.y < 0) disparos.splice(index, 1);
+            });
+
+            enemigos.forEach((e, eIndex) => {
+                e.y += e.velocidad;
+                if (e.y > canvas.height) { enemigos.splice(eIndex, 1); restarVida(); }
+
+                if (e.x < nave.x + nave.ancho && e.x + e.ancho > nave.x && e.y < nave.y + nave.alto && e.y + e.alto > nave.y) {
+                    crearExplosion(e.x + e.ancho/2, e.y + e.alto/2);
+                    enemigos.splice(eIndex, 1);
+                    restarVida();
+                }
+
+                disparos.forEach((d, dIndex) => {
+                    if (d.x < e.x + e.ancho && d.x + d.ancho > e.x && d.y < e.y + e.alto && d.y + d.alto > e.y) {
+                        crearExplosion(e.x + e.ancho/2, e.y + e.alto/2);
+                        enemigos.splice(eIndex, 1);
+                        disparos.splice(dIndex, 1);
+                        score += 15;
+                        scoreElement.innerText = score;
+                    }
+                });
+            });
+
+            dibujar();
+        }
+
+        function restarVida() {
+            vidas--; vidasElement.innerText = vidas;
+            if (vidas <= 0) {
+                juegoTerminado = true;
+                clearInterval(bucleJuego); clearInterval(intervaloEnemigos);
+                mensajeElement.innerHTML = `<span style="color:#E74C3C;">MISIÓN FALLIDA</span><br><br><span style="font-size:20px;">Score: ${score}</span><br><br><span style='font-size: 16px; color: #aaa;'>Presiona cualquier botón para reintentar</span>`;
+                mensajeElement.style.display = "block";
+            }
+        }
+
+        window.addEventListener("message", (evento) => {
+            const comando = evento.data.accion;
+            if (!comando) return;
+            if (juegoTerminado) { iniciarJuego(); return; }
+
+            switch (comando) {
+                case "IZQUIERDA": nave.direccion = "IZQUIERDA"; break;
+                case "DERECHA": nave.direccion = "DERECHA"; break;
+                case "CENTRO": case "ARRIBA": case "ABAJO": nave.direccion = "CENTRO"; break;
+                case "A": dispararLaser(); break;
+                case "PAUSA":
+                case "MENU":
+                    juegoPausado = !juegoPausado;
+                    if (juegoPausado) {
+                        mensajeElement.innerHTML = "PAUSA<br><span style='font-size: 16px; color: #aaa;'>Presiona Pausa para reanudar</span>";
+                        mensajeElement.style.display = "block";
+                    } else {
+                        mensajeElement.style.display = "none";
+                    }
+                    break;
+            }
+        });
+
+        iniciarJuego();
+    </script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pixel Racer - Netflix Games</title>
+    <style>
+        body {
+            margin: 0;
+            background: #050508;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #juegoCanvas {
+            border: 4px solid #E50914;
+            background: #0b0e14;
+            box-shadow: 0 0 30px rgba(229, 9, 20, 0.5);
+            border-radius: 8px;
+        }
+        #pantalla-info {
+            position: absolute;
+            top: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            display: flex;
+            gap: 50px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.3);
+        }
+        #mensaje {
+            position: absolute;
+            font-size: 28px;
+            font-weight: bold;
+            background: rgba(5, 5, 8, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #E50914;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(229, 9, 20, 0.7);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-info">
+        <div>DISTANCIA: <span id="score" style="color: #f1c40f;">0m</span></div>
+        <div>VELOCIDAD: <span id="velocidadText" style="color: #2ed573;">0 km/h</span></div>
+    </div>
+    <canvas id="juegoCanvas" width="500" height="600"></canvas>
+    <div id="mensaje"></div>
+
+    <script>
+        const canvas = document.getElementById("juegoCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const velocidadTextElement = document.getElementById("velocidadText");
+        const mensajeElement = document.getElementById("mensaje");
+
+        // Línea del horizonte donde se juntan los carriles en el fondo
+        const horizonteY = 220; 
+
+        // Configuración del jugador (en la parte inferior, fija en Y)
+        const coche = { x: canvas.width / 2, anchoBase: 75, altoBase: 50 };
+        let posicionX = 0; // -1 a 1 (posición en la carretera)
+        let velocidadX = 0;
+
+        let enemigos = [];
+        let particulasHumo = [];
+        let score = 0;
+        let velocidadActual = 0;
+        let maxVelocidad = 15; 
+        let acelerando = false;
+        let fondoOffset = 0;
+        
+        let juegoPausado = false;
+        let juegoTerminado = false;
+        let bucleJuego;
+        let intervaloEnemigos;
+
+        function iniciarJuego() {
+            posicionX = 0;
+            velocidadX = 0;
+            enemigos = [];
+            particulasHumo = [];
+            score = 0;
+            velocidadActual = 0;
+            acelerando = false;
+            fondoOffset = 0;
+            scoreElement.innerText = "0m";
+            velocidadTextElement.innerText = "0 km/h";
+            juegoTerminado = false;
+            juegoPausado = false;
+            mensajeElement.style.display = "none";
+
+            clearInterval(bucleJuego);
+            clearInterval(intervaloEnemigos);
+            bucleJuego = setInterval(actualizar, 1000 / 60);
+            intervaloEnemigos = setInterval(generarEnemigo, 1200);
+        }
+
+        function generarEnemigo() {
+            if (juegoPausado || juegoTerminado || velocidadActual < 2) return;
+            // Carriles: Izquierda (-0.6, -0.2) y Derecha (0.2, 0.6)
+            const opcionesCarril = [-0.6, -0.2, 0.2, 0.6];
+            const carrilAleatorio = opcionesCarril[Math.floor(Math.random() * opcionesCarril.length)];
+            
+            enemigos.push({
+                lineaProgresion: 0, // De 0 (horizonte) a 1 (pantalla inferior)
+                carrilX: carrilAleatorio,
+                velocidadProgreso: 0.008 + Math.random() * 0.007,
+                color: Math.random() > 0.5 ? "#f1c40f" : "#9b59b6"
+            });
+        }
+
+        function proyectarPerspectiva(carrilX, progresoY) {
+            // Transformación matemática de perspectiva 3D pseudo-retro
+            const anchoHorizonte = 40;
+            const anchoBaseCarretera = 420;
+            
+            // Interpolación de escala según la distancia
+            const anchoActualCarretera = anchoHorizonte + (anchoBaseCarretera - anchoHorizonte) * progresoY;
+            const centroX = canvas.width / 2;
+            
+            const x = centroX + (carrilX * (anchoActualCarretera / 2));
+            const y = horizonteY + (canvas.height - horizonteY) * progresoY;
+            const escala = 0.15 + 0.85 * progresoY; // Más pequeño al fondo
+
+            return { x, y, escala };
+        }
+
+        function dibujarCoche(x, y, escala, colorPrincipal, esEnemigo = false) {
+            const w = 70 * escala;
+            const h = 45 * escala;
+
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Neumáticos
+            ctx.fillStyle = "#090a0e";
+            ctx.fillRect(-w/2 - 4*escala, h - 28*escala, 7*escala, 20*escala);
+            ctx.fillRect(w/2 - 3*escala, h - 28*escala, 7*escala, 20*escala);
+
+            // Carrocería trasera
+            ctx.fillStyle = colorPrincipal;
+            ctx.fillRect(-w/2, h - 18*escala, w, 15*escala);
+
+            // Techo y luna trasera
+            ctx.fillStyle = "#141923";
+            ctx.beginPath();
+            ctx.moveTo(-w/2 + 8*escala, h - 16*escala);
+            ctx.lineTo(-w/2 + 15*escala, 5*escala);
+            ctx.lineTo(w/2 - 15*escala, 5*escala);
+            ctx.lineTo(w/2 - 8*escala, h - 16*escala);
+            ctx.closePath();
+            ctx.fill();
+
+            if (!esEnemigo) {
+                // Cristal parabrisas trasero azul neón
+                ctx.fillStyle = "#48dbfb";
+                ctx.beginPath();
+                ctx.moveTo(-w/2 + 12*escala, h - 15*escala);
+                ctx.lineTo(-w/2 + 18*escala, 14*escala);
+                ctx.lineTo(w/2 - 18*escala, 14*escala);
+                ctx.lineTo(w/2 - 12*escala, h - 15*escala);
+                ctx.closePath();
+                ctx.fill();
+
+                // Alerón deportivo
+                ctx.fillStyle = "#090a0e";
+                ctx.fillRect(-w/2 - 2*escala, h - 24*escala, w + 4*escala, 4*escala);
+                
+                // Luces rojas traseras de posición
+                ctx.fillStyle = acelerando ? "#ff4757" : "#ff6b81";
+                ctx.fillRect(-w/2 + 4*escala, h - 10*escala, 10*escala, 4*escala);
+                ctx.fillRect(w/2 - 14*escala, h - 10*escala, 10*escala, 4*escala);
+            } else {
+                // Si es enemigo, muestra sus luces traseras apagadas o amarillas si vienen de frente
+                ctx.fillStyle = "#ffa502";
+                ctx.fillRect(-w/2 + 4*escala, h - 8*escala, 8*escala, 4*escala);
+                ctx.fillRect(w/2 - 12*escala, h - 8*escala, 8*escala, 4*escala);
+            }
+
+            ctx.restore();
+        }
+
+        function dibujar() {
+            // Cielo superior
+            ctx.fillStyle = "#05050d";
+            ctx.fillRect(0, 0, canvas.width, horizonteY);
+            
+            // Montañas lejanas decorativas en el horizonte
+            ctx.fillStyle = "#0d121f";
+            ctx.beginPath();
+            ctx.moveTo(0, horizonteY); ctx.lineTo(120, horizonteY - 30); ctx.lineTo(260, horizonteY);
+            ctx.lineTo(380, horizonteY - 40); ctx.lineTo(500, horizonteY);
+            ctx.fill();
+
+            // Terreno/Césped inferior
+            ctx.fillStyle = "#101520";
+            ctx.fillRect(0, horizonteY, canvas.width, canvas.height - horizonteY);
+
+            // Dibujar segmentos de carretera con líneas para dar efecto de movimiento fluido
+            const segmentos = 25;
+            for (let i = segmentos; i >= 0; i--) {
+                const progActual = i / segmentos;
+                const progSiguiente = (i + 1) / segmentos;
+
+                // Modulamos la posición con el offset del fondo para simular animación de velocidad
+                const colorFiltro = (Math.floor(i + fondoOffset) % 2 === 0);
+                
+                const p1 = proyectarPerspectiva(0, progActual);
+                const p2 = proyectarPerspectiva(0, progSiguiente);
+
+                const anchoP1 = 420 * (0.15 + 0.85 * progActual);
+                const anchoP2 = 420 * (0.15 + 0.85 * progSiguiente);
+
+                // Dibujar asfalto
+                ctx.fillStyle = colorFiltro ? "#242a36" : "#282f3d";
+                ctx.beginPath();
+                ctx.moveTo(p1.x - anchoP1/2, p1.y);
+                ctx.lineTo(p2.x - anchoP2/2, p2.y);
+                ctx.lineTo(p2.x + anchoP2/2, p2.y);
+                ctx.lineTo(p1.x + anchoP1/2, p1.y);
+                ctx.fill();
+
+                // Líneas rojas/blancas laterales (Arcén de seguridad arcade)
+                ctx.fillStyle = colorFiltro ? "#E50914" : "#ffffff";
+                ctx.beginPath();
+                ctx.moveTo(p1.x - anchoP1/2, p1.y); ctx.lineTo(p2.x - anchoP2/2, p2.y);
+                ctx.lineTo(p2.x - anchoP2/2 + 6*p2.escala, p2.y); ctx.lineTo(p1.x - anchoP1/2 + 6*p1.escala, p1.y);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(p1.x + anchoP1/2, p1.y); ctx.lineTo(p2.x + anchoP2/2, p2.y);
+                ctx.lineTo(p2.x + anchoP2/2 - 6*p2.escala, p2.y); ctx.lineTo(p1.x + anchoP1/2 - 6*p1.escala, p1.y);
+                ctx.fill();
+
+                // Líneas divisorias de carriles del centro (Solo tramos intermitentes)
+                if (colorFiltro) {
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+                    const lw1 = 4 * p1.escala;
+                    const lw2 = 4 * p2.escala;
+                    // Carril central
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x - lw1, p1.y); ctx.lineTo(p2.x - lw2, p2.y);
+                    ctx.lineTo(p2.x + lw2, p2.y); ctx.lineTo(p1.x + lw1, p1.y);
+                    ctx.fill();
+                }
+            }
+
+            // --- TRÁFICO ENEMIGO EN PERSPECTIVA ---
+            enemigos.forEach(e => {
+                if (e.lineaProgresion > 0.1 && e.lineaProgresion < 1) {
+                    // Ajustamos su carril lateral en base a la perspectiva real
+                    const p = proyectarPerspectiva(e.carrilX - posicionX, e.lineaProgresion);
+                    dibujarCoche(p.x, p.y, p.escala, e.color, true);
+                }
+            });
+
+            // --- DIBUJAR JUGADOR FIJO EN LA BASE (PERSPECTIVA MÁXIMA) ---
+            const jugadorP = proyectarPerspectiva(0, 0.92);
+            dibujarCoche(canvas.width / 2, jugadorP.y, 0.95, "#E50914", false);
+        }
+
+        function actualizar() {
+            if (juegoPausado || juegoTerminado) return;
+
+            // Físicas de aceleración y velocidad del mundo
+            if (acelerando) {
+                if (velocidadActual < maxVelocidad) velocidadActual += 0.18;
+            } else {
+                if (velocidadActual > 0) velocidadActual -= 0.15;
+            }
+            if (velocidadActual < 0) velocidadActual = 0;
+
+            velocidadTextElement.innerText = `${Math.floor(velocidadActual * 22)} km/h`;
+
+            if (velocidadActual > 0) {
+                score += Math.floor(velocidadActual / 3);
+                scoreElement.innerText = `${score}m`;
+                // Efecto de avance de las líneas
+                fondoOffset += (velocidadActual * 0.05);
+            }
+
+            // Mover coche lateralmente (Modifica la coordenada del mundo de la carretera)
+            posicionX += velocidadX;
+            if (posicionX < -0.8) posicionX = -0.8;
+            if (posicionX > 0.8) posicionX = 0.8;
+
+            // Actualizar progresión de los enemigos
+            enemigos.forEach((e, index) => {
+                // Se acercan más rápido si el jugador va lento, o bajan según su velocidad propia
+                e.lineaProgresion += e.velocidadProgreso + (velocidadActual * 0.0005);
+
+                // Si sobrepasa la pantalla del jugador, se elimina
+                if (e.lineaProgresion >= 1) {
+                    enemigos.splice(index, 1);
+                    return;
+                }
+
+                // Zona crítica de impacto (Cuando comparte la distancia Y de aproximación del jugador)
+                if (e.lineaProgresion > 0.85 && e.lineaProgresion < 0.96) {
+                    // Verificamos si están colisionando en el eje X relativo de la pista
+                    if (Math.abs(e.carrilX - posicionX) < 0.28) {
+                        finalizarJuego();
+                    }
+                }
+            });
+
+            dibujar();
+        }
+
+        function finalizarJuego() {
+            juegoTerminado = true;
+            clearInterval(bucleJuego);
+            clearInterval(intervaloEnemigos);
+            mensajeElement.innerHTML = `<span style="color:#E74C3C;">¡COLISIÓN EN LA CARRETERA!</span><br><br><span style="font-size:20px;">Marcador: ${score} metros</span><br><br><span style='font-size: 16px; color: #aaa;'>Presiona cualquier botón para reintentar</span>`;
+            mensajeElement.style.display = "block";
+        }
+
+        window.addEventListener("message", (evento) => {
+            const comando = evento.data.accion;
+            if (!comando) return;
+
+            if (juegoTerminado) {
+                iniciarJuego(); return;
+            }
+
+            switch (comando) {
+                case "IZQUIERDA": velocidadX = -0.04; break;
+                case "DERECHA": velocidadX = 0.04; break;
+                case "CENTRO": case "ARRIBA": case "ABAJO": velocidadX = 0; break;
+                case "A": acelerando = true; break;
+                case "B": case "X": case "Y": acelerando = false; break;
+                case "PAUSA":
+                case "MENU":
+                    juegoPausado = !juegoPausado;
+                    if (juegoPausado) {
+                        mensajeElement.innerHTML = "PAUSA<br><span style='font-size: 16px; color: #aaa;'>Presiona Pausa para continuar</span>";
+                        mensajeElement.style.display = "block";
+                    } else {
+                        mensajeElement.style.display = "none";
+                    }
+                    break;
+            }
+        });
+
+        iniciarJuego();
+    </script>
+</body>
+</html>

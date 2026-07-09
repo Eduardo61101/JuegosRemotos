@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Snake - Netflix Games</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a0c;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #juegoCanvas {
+            border: 4px solid #E50914;
+            background: #111116;
+            box-shadow: 0 0 30px rgba(229, 9, 20, 0.6);
+            border-radius: 8px;
+        }
+        #pantalla-info {
+            position: absolute;
+            top: 25px;
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        #mensaje {
+            position: absolute;
+            font-size: 28px;
+            font-weight: bold;
+            background: rgba(10, 10, 12, 0.95);
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #E50914;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(229, 9, 20, 0.8);
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="pantalla-info">SCORE: <span id="score" style="color: #2ed573;">0</span></div>
+    <canvas id="juegoCanvas" width="600" height="450"></canvas>
+    <div id="mensaje"></div>
+
+    <script>
+        const canvas = document.getElementById("juegoCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreElement = document.getElementById("score");
+        const mensajeElement = document.getElementById("mensaje");
+
+        const grid = 25;
+        let snake = [];
+        let direccion = "DERECHA";
+        let proximaDireccion = "DERECHA";
+        let comida = { x: 0, y: 0 };
+        let score = 0;
+        let juegoPausado = false;
+        let juegoTerminado = false;
+        let bucleJuego;
+        let particulas = [];
+
+        function posicionComidaAleatoria() {
+            comida.x = Math.floor(Math.random() * (canvas.width / grid)) * grid;
+            comida.y = Math.floor(Math.random() * (canvas.height / grid)) * grid;
+        }
+
+        function crearParticulas(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particulas.push({
+                    x: x + grid/2,
+                    y: y + grid/2,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    radio: Math.random() * 3 + 1,
+                    vida: 1
+                });
+            }
+        }
+
+        function iniciarJuego() {
+            snake = [
+                { x: grid * 4, y: grid * 5 },
+                { x: grid * 3, y: grid * 5 },
+                { x: grid * 2, y: grid * 5 }
+            ];
+            direccion = "DERECHA";
+            proximaDireccion = "DERECHA";
+            score = 0;
+            scoreElement.innerText = score;
+            juegoTerminado = false;
+            juegoPausado = false;
+            particulas = [];
+            mensajeElement.style.display = "none";
+            posicionComidaAleatoria();
+            
+            clearInterval(bucleJuego);
+            bucleJuego = setInterval(actualizar, 90);
+        }
+
+        function dibujarFondo() {
+            ctx.fillStyle = "#111116";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Rejilla de fondo sutil
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += grid) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+            for (let j = 0; j < canvas.height; j += grid) {
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+            }
+        }
+
+        function dibujar() {
+            dibujarFondo();
+
+            // Dibujar Partículas de explosión
+            particulas.forEach((p, i) => {
+                ctx.fillStyle = `rgba(46, 213, 115, ${p.vida})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radio, 0, Math.PI * 2);
+                ctx.fill();
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vida -= 0.04;
+                if (p.vida <= 0) particulas.splice(i, 1);
+            });
+
+            // Dibujar Comida (Orbe de energía brillante)
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#2ed573";
+            ctx.fillStyle = "#2ed573";
+            ctx.beginPath();
+            ctx.arc(comida.x + grid/2, comida.y + grid/2, grid/2 - 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Dibujar Serpiente Neon
+            snake.forEach((parte, index) => {
+                if (index === 0) {
+                    ctx.shadowColor = "#E50914";
+                    ctx.fillStyle = "#E50914"; // Cabeza
+                } else {
+                    ctx.shadowColor = "#ff4d4d";
+                    ctx.fillStyle = "#ff3333"; // Cuerpo
+                }
+                ctx.fillRect(parte.x + 1, parte.y + 1, grid - 2, grid - 2);
+            });
+            ctx.shadowBlur = 0; // Resetear sombra
+        }
+
+        function actualizar() {
+            if (juegoPausado || juegoTerminado) return;
+
+            direccion = proximaDireccion;
+            let cabezaX = snake[0].x;
+            let cabezaY = snake[0].y;
+
+            if (direccion === "ARRIBA") cabezaY -= grid;
+            if (direccion === "ABAJO") cabezaY += grid;
+            if (direccion === "IZQUIERDA") cabezaX -= grid;
+            if (direccion === "DERECHA") cabezaX += grid;
+
+            if (cabezaX < 0 || cabezaX >= canvas.width || cabezaY < 0 || cabezaY >= canvas.height) {
+                finalizarJuego(); return;
+            }
+
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === cabezaX && snake[i].y === cabezaY) {
+                    finalizarJuego(); return;
+                }
+            }
+
+            const nuevaCabeza = { x: cabezaX, y: cabezaY };
+
+            if (cabezaX === comida.x && cabezaY === comida.y) {
+                score += 10;
+                scoreElement.innerText = score;
+                crearParticulas(comida.x, comida.y, "#2ed573");
+                posicionComidaAleatoria();
+            } else {
+                snake.pop();
+            }
+
+            snake.unshift(nuevaCabeza);
+            dibujar();
+        }
+
+        function finalizarJuego() {
+            juegoTerminado = true;
+            clearInterval(bucleJuego);
+            mensajeElement.innerHTML = `<span style="color:#E50914;">GAME OVER</span><br><br><span style="font-size:20px;">Puntaje: ${score}</span><br><br><span style='font-size: 16px; color: #aaa;'>Presiona cualquier botón para reiniciar</span>`;
+            mensajeElement.style.display = "block";
+        }
+
+        window.addEventListener("message", (evento) => {
+            const comando = evento.data.accion;
+            if (!comando) return;
+
+            if (juegoTerminado) {
+                iniciarJuego(); return;
+            }
+
+            switch (comando) {
+                case "ARRIBA": if (direccion !== "ABAJO") proximaDireccion = "ARRIBA"; break;
+                case "ABAJO": if (direccion !== "ARRIBA") proximaDireccion = "ABAJO"; break;
+                case "IZQUIERDA": if (direccion !== "DERECHA") proximaDireccion = "IZQUIERDA"; break;
+                case "DERECHA": if (direccion !== "IZQUIERDA") proximaDireccion = "DERECHA"; break;
+                case "PAUSA":
+                case "MENU":
+                    juegoPausado = !juegoPausado;
+                    if (juegoPausado) {
+                        mensajeElement.innerHTML = "PAUSA<br><span style='font-size: 16px; color: #aaa;'>Presiona Pausa para continuar</span>";
+                        mensajeElement.style.display = "block";
+                    } else {
+                        mensajeElement.style.display = "none";
+                    }
+                    break;
+            }
+        });
+
+        iniciarJuego();
+    </script>
+</body>
+</html>
