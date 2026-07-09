@@ -33,7 +33,7 @@
             position: absolute;
             background: rgba(10, 10, 18, 0.95);
             width: 800px;
-            height: 600px;
+            height: 550px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -44,7 +44,7 @@
             z-index: 10;
         }
         .btn-iniciar {
-            background: #E50914;
+            background: #2ed573;
             color: white;
             border: none;
             padding: 15px 40px;
@@ -53,7 +53,7 @@
             border-radius: 4px;
             cursor: pointer;
             margin-top: 25px;
-            box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
+            box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);
         }
         .lista-jugadores {
             display: flex;
@@ -66,18 +66,25 @@
             border-radius: 4px;
             border: 2px dashed #444;
             font-size: 16px;
+            color: #666;
         }
         .slot-jugador.activo {
             border-style: solid;
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+        }
+        #contador-status {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #ffd32a;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <div id="lobby-info">SALA MULTIJUGADOR CO-OP / PVP</div>
+    <div id="lobby-info">SALA MULTIJUGADOR LOCAL (MIN. 2 JUGADORES)</div>
     
-    <div id="pantalla-espera" style="width: 800px; height: 550px;">
+    <div id="pantalla-espera">
         <h1 style="color: #E50914; font-size: 36px; margin: 0 0 10px 0;">CYBER TANKS</h1>
         <p style="font-size: 18px; color: #aaa;">Conecta tus controles escaneando el código QR</p>
         
@@ -87,6 +94,8 @@
             <div id="slot3" class="slot-jugador">P3: Esperando...</div>
             <div id="slot4" class="slot-jugador">P4: Esperando...</div>
         </div>
+
+        <div id="contador-status">Esperando que se unan al menos 2 jugadores...</div>
 
         <button id="btnEmpezar" class="btn-iniciar" style="display:none;" onclick="comenzarBatalla()">
             ¡INICIAR BATALLA!
@@ -100,10 +109,9 @@
         const ctx = canvas.getContext("2d");
 
         let partidaIniciada = false;
-        let listaControlesConectados = {}; // Vincula el ID único del dispositivo de Firebase a un número de Jugador (1-4)
+        let listaControlesConectados = {}; 
         let numJugadores = 0;
 
-        // Configuración de Colores para cada Jugador
         const infoDiseno = {
             1: { color: "#E50914", nombre: "Jugador 1 (Rojo)", slot: "slot1" },
             2: { color: "#2ed573", nombre: "Jugador 2 (Verde)", slot: "slot2" },
@@ -111,24 +119,26 @@
             4: { color: "#ffa500", nombre: "Jugador 4 (Naranja)", slot: "slot4" }
         };
 
-        // Estructura de los Tanques Jugadores
         let tanques = {};
         let balas = [];
         let minas = [];
-        let particulas = [];
+        let bucleJuego;
+        let intervaloEnemigos;
 
         function registrarControlador(idMando) {
-            if (listaControlesConectados[idMando]) return listaControlesConectados[idMando]; // Ya registrado
+            // Si el control ya está registrado, devolvemos su número asignado
+            if (listaControlesConectados[idMando]) return listaControlesConectados[idMando]; 
             
-            if (numJugadores >= 4) return null; // Sala llena
+            // Límite máximo de 4 controles
+            if (numJugadores >= 4) return null; 
 
             numJugadores++;
             listaControlesConectados[idMando] = numJugadores;
 
-            // Inicializar el tanque del nuevo jugador en una esquina aleatoria
+            // Inicializar tanque
             tanques[numJugadores] = {
-                x: 80 + Math.random() * (canvas.width - 160),
-                y: 80 + Math.random() * (canvas.height - 160),
+                x: 100 + (numJugadores * 120),
+                y: 150 + Math.random() * 200,
                 w: 36, h: 36,
                 vX: 0, vY: 0,
                 angulo: 0,
@@ -141,36 +151,43 @@
                 nombre: "P" + numJugadores
             };
 
-            // Actualizar la interfaz visual del Lobby
+            // Activar visualmente en el Lobby
             const slot = document.getElementById(infoDiseno[numJugadores].slot);
             slot.innerText = infoDiseno[numJugadores].nombre;
             slot.classList.add("activo");
             slot.style.borderColor = infoDiseno[numJugadores].color;
             slot.style.color = infoDiseno[numJugadores].color;
 
-            // Si hay al menos un jugador, permitir iniciar
-            if (numJugadores >= 1) {
+            // RESTRICCIÓN DE JUGADORES: Solo activa el botón si hay 2, 3 o 4 jugadores
+            const statusTexto = document.getElementById("contador-status");
+            if (numJugadores >= 2) {
+                statusTexto.innerText = `¡Listo! ${numJugadores} jugadores conectados.`;
+                statusTexto.style.color = "#2ed573";
                 document.getElementById("btnEmpezar").style.display = "block";
+            } else {
+                statusTexto.innerText = `Controles conectados: ${numJugadores}/4. Se requieren mínimo 2 jugadores.`;
+                document.getElementById("btnEmpezar").style.display = "none";
             }
 
             return numJugadores;
         }
 
         function comenzarBatalla() {
+            if (numJugadores < 2) return; // Validación extra de seguridad
             document.getElementById("pantalla-espera").style.display = "none";
             partidaIniciada = true;
             bucleJuego = setInterval(actualizarMundo, 1000 / 60);
         }
 
-        // --- MANEJO DE COMANDOS MULTIJUGADOR EXTENDIDO (A, B, X, Y) ---
+        // RECEPTOR DE FIREBASE REAL (Identifica mandos de forma individual)
         window.addEventListener("message", (evento) => {
             const datos = evento.data;
             if (!datos || !datos.accion) return;
 
-            // Identificar qué control físico envía el mensaje. Si tu Firebase no manda ID, usamos el origen del evento temporalmente como ID único
-            const idMandoUnico = datos.idControlador || "mando_anonimo_" + (datos.jugadorPrefijo || "1");
+            // Tomamos el idDispositivo o remitente único enviado desde tu pantalla.html
+            const idMandoUnico = datos.idControlador || datos.idDispositivo || "dispositivo_id_" + (datos.jugadorPrefijo || "anonimo");
             
-            // Registrar u obtener el número asignado a este mando (1, 2, 3 o 4)
+            // Registra el control dinámicamente
             const nJugador = registrarControlador(idMandoUnico);
             if (!nJugador || !partidaIniciada) return;
 
@@ -178,43 +195,44 @@
             if (!tanque || tanque.vida <= 0) return;
 
             switch (datos.accion) {
-                // Direccionales (Joystick)
+                // Movimientos
                 case "IZQUIERDA": tanque.vX = -tanque.velocidadBase; tanque.angulo = Math.PI; break;
                 case "DERECHA": tanque.vX = tanque.velocidadBase; tanque.angulo = 0; break;
                 case "ARRIBA": tanque.vY = -tanque.velocidadBase; tanque.angulo = -Math.PI / 2; break;
                 case "ABAJO": tanque.vY = tanque.velocidadBase; tanque.angulo = Math.PI / 2; break;
                 case "CENTRO": tanque.vX = 0; tanque.vY = 0; break;
 
-                // --- SISTEMA DE BOTONES EXTENDIDO ---
-                case "A": // BOTÓN A: DISPARO NORMAL
+                // Acciones de Botones Completa
+                case "A": // Disparo Cañón Láser
                     balas.push({
-                        x: tanque.x, y: tanque.y,
-                        vX: Math.cos(tanque.angulo) * 7,
-                        vY: Math.sin(tanque.angulo) * 7,
+                        x: tanque.x + Math.cos(tanque.angulo) * 20, 
+                        y: tanque.y + Math.sin(tanque.angulo) * 20,
+                        vX: Math.cos(tanque.angulo) * 6.5,
+                        vY: Math.sin(tanque.angulo) * 6.5,
                         dueno: nJugador
                     });
                     break;
 
-                case "B": // BOTÓN B: ACTIVAR ESCUDO DE ENERGÍA
+                case "B": // Escudo Temporal
                     if (!tanque.escudoActivo && tanque.recargaHabilidad <= 0) {
                         tanque.escudoActivo = true;
-                        tanque.tiempoEscudo = 120; // 2 segundos a 60fps
+                        tanque.tiempoEscudo = 150; // 2.5 segundos activos
                     }
                     break;
 
-                case "X": // BOTÓN X: SOLTAR MINA TERRESTRE
-                    minas.push({ x: tanque.x, y: tanque.y, dueno: nJugador, timer: 30 });
+                case "X": // Soltar Mina
+                    minas.push({ x: tanque.x, y: tanque.y, dueno: nJugador });
                     break;
 
-                case "Y": // BOTÓN Y: TURBO / ACELERÓN PROS
-                    tanque.x += Math.cos(tanque.angulo) * 30;
-                    tanque.y += Math.sin(tanque.angulo) * 30;
+                case "Y": // Propulsor / Nitro
+                    tanque.x += Math.cos(tanque.angulo) * 35;
+                    tanque.y += Math.sin(tanque.angulo) * 35;
                     break;
             }
         });
 
         function actualizarMundo() {
-            // Actualizar Tanques
+            // Actualizar Física Tanques
             for (let id in tanques) {
                 let t = tanques[id];
                 if (t.vida <= 0) continue;
@@ -222,16 +240,14 @@
                 t.x += t.vX;
                 t.y += t.vY;
 
-                // Límites de la arena
-                if (t.x < 20) t.x = 20; if (t.x > canvas.width - 20) t.x = canvas.width - 20;
-                if (t.y < 20) t.y = 20; if (t.y > canvas.height - 20) t.y = canvas.height - 20;
+                if (t.x < 25) t.x = 25; if (t.x > canvas.width - 25) t.x = canvas.width - 25;
+                if (t.y < 25) t.y = 25; if (t.y > canvas.height - 25) t.y = canvas.height - 25;
 
-                // Reducir temporizadores
                 if (t.escudoActivo) {
                     t.tiempoEscudo--;
                     if (t.tiempoEscudo <= 0) {
                         t.escudoActivo = false;
-                        t.recargaHabilidad = 300; // Enfriamiento para volver a usar
+                        t.recargaHabilidad = 240; // Cooldown
                     }
                 }
                 if (t.recargaHabilidad > 0) t.recargaHabilidad--;
@@ -241,20 +257,18 @@
             balas.forEach((b, bIdx) => {
                 b.x += b.vX; b.y += b.vY;
                 
-                // Colisiones de bala contra tanques enemigos
                 for (let id in tanques) {
                     let t = tanques[id];
                     if (t.vida <= 0 || id == b.dueno) continue;
 
                     let dist = Math.hypot(b.x - t.x, b.y - t.y);
-                    if (dist < t.w / 2) {
+                    if (dist < t.w / 2 + 4) {
                         balas.splice(bIdx, 1);
-                        if (!t.escudoActivo) t.vida -= 15; // El escudo absorbe el daño
+                        if (!t.escudoActivo) t.vida -= 20;
                         return;
                     }
                 }
 
-                // Salirse del mapa
                 if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
                     balas.splice(bIdx, 1);
                 }
@@ -267,9 +281,9 @@
                     if (t.vida <= 0 || id == m.dueno) continue;
 
                     let dist = Math.hypot(m.x - t.x, m.y - t.y);
-                    if (dist < t.w / 2 + 10) {
+                    if (dist < t.w / 2 + 12) {
                         minas.splice(mIdx, 1);
-                        if (!t.escudoActivo) t.vida -= 35; // Daño crítico de mina
+                        if (!t.escudoActivo) t.vida -= 40; // Impacto crítico
                         return;
                     }
                 }
@@ -281,20 +295,32 @@
         function renderizarTodo() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Dibujar Minas
+            // Dibujar Arena de Batalla (Fondo Tecnológico)
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+            ctx.lineWidth = 1;
+            for(let i = 0; i < canvas.width; i += 40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+            for(let j = 0; j < canvas.height; j += 40) {
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+            }
+
+            // Dibujar Minas (Discos rosas parpadeantes)
             minas.forEach(m => {
                 ctx.fillStyle = "#ff007f";
-                ctx.beginPath(); ctx.arc(m.x, m.y, 8, 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = "#fff"; ctx.stroke();
+                ctx.beginPath(); ctx.arc(m.x, m.y, 9, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
             });
 
-            // Dibujar Balas
+            // Dibujar Balas Láser (Esferas de Energía)
             balas.forEach(b => {
                 ctx.fillStyle = "#00ffff";
+                ctx.shadowColor = "#00ffff"; ctx.shadowBlur = 8;
                 ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.shadowBlur = 0;
             });
 
-            // Dibujar Tanques Vectoriales
+            // Dibujar Tanques
             for (let id in tanques) {
                 let t = tanques[id];
                 if (t.vida <= 0) continue;
@@ -303,37 +329,70 @@
                 ctx.translate(t.x, t.y);
                 ctx.rotate(t.angulo);
 
-                // Chasis del tanque
+                // Cuerpo Tanque
                 ctx.fillStyle = t.color;
                 ctx.fillRect(-t.w / 2, -t.h / 2, t.w, t.h);
 
-                // Orugas/Llantas laterales
-                ctx.fillStyle = "#222";
-                ctx.fillRect(-t.w/2 - 4, -t.h/2 + 2, 6, t.h - 4);
-                ctx.fillRect(t.w/2 - 2, -t.h/2 + 2, 6, t.h - 4);
+                // Orugas de movimiento
+                ctx.fillStyle = "#25262e";
+                ctx.fillRect(-t.w/2 - 3, -t.h/2 - 2, 6, t.h + 4);
+                ctx.fillRect(t.w/2 - 3, -t.h/2 - 2, 6, t.h + 4);
 
-                // Cañón apuntando al frente
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(0, -4, t.w / 2 + 8, 8);
+                // Cañón Láser
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, -4, t.w / 2 + 10, 8);
 
-                // Renderizar Escudo Protector si está activo (Círculo Neón brillante)
+                // Escudo protector Neón
                 if (t.escudoActivo) {
-                    ctx.strokeStyle = "#00ffff";
-                    ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.arc(0, 0, t.w + 6, 0, Math.PI * 2); ctx.stroke();
+                    ctx.strokeStyle = "#48dbfb";
+                    ctx.shadowColor = "#48dbfb"; ctx.shadowBlur = 12;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(0, 0, t.w - 2, 0, Math.PI * 2); ctx.stroke();
+                    ctx.shadowBlur = 0;
                 }
 
                 ctx.restore();
 
-                // Interfaz de barra de vida arriba de cada tanque
-                ctx.fillStyle = "rgba(0,0,0,0.5)";
-                ctx.fillRect(t.x - 20, t.y - 30, 40, 5);
-                ctx.fillStyle = t.vida > 30 ? "#2ed573" : "#ff4757";
-                ctx.fillRect(t.x - 20, t.y - 30, (t.vida / 100) * 40, 5);
+                // HUD Vida encima de los tanques
+                ctx.fillStyle = "rgba(0,0,0,0.6)";
+                ctx.fillRect(t.x - 22, t.y - 30, 44, 6);
+                ctx.fillStyle = t.vida > 35 ? "#2ed573" : "#ff4757";
+                ctx.fillRect(t.x - 22, t.y - 30, (t.vida / 100) * 44, 6);
                 
-                ctx.fillStyle = "#fff";
-                ctx.font = "11px Arial";
-                ctx.fillText(t.nombre, t.x - 6, t.y - 36);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 11px Arial";
+                ctx.fillText(t.nombre, t.x - 7, t.y - 38);
+            }
+
+            // Comprobar Fin de Partida (Si queda solo uno en pie)
+            let vivos = Object.values(tanques).filter(t => t.vida > 0);
+            if (vivos.length <= 1 && partidaIniciada) {
+                partidaIniciada = false;
+                clearInterval(bucleJuego);
+                
+                let ganadorTexto = vivos.length === 1 ? `¡GANADOR: ${vivos[0].nombre}!` : "¡EMPATE TOTAL!";
+                
+                setTimeout(() => {
+                    document.getElementById("pantalla-espera").style.display = "flex";
+                    document.getElementById("contador-status").innerText = "La batalla ha terminado.";
+                    document.getElementById("contador-status").style.color = "#ffd32a";
+                    
+                    // Resetear variables para permitir revancha limpia
+                    listaControlesConectados = {};
+                    numJugadores = 0;
+                    tanques = {};
+                    balas = [];
+                    minas = [];
+                    
+                    // Limpiar slots visuales
+                    for(let i=1; i<=4; i++) {
+                        let s = document.getElementById("slot"+i);
+                        s.innerText = `P${i}: Esperando...`;
+                        s.className = "slot-jugador";
+                        s.style = "";
+                    }
+                    document.getElementById("btnEmpezar").style.display = "none";
+                }, 2000);
             }
         }
     </script>
