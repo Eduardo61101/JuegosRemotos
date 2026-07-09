@@ -1,159 +1,109 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Netflix Games</title>
-
-<!-- Firebase -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/8.10.1/firebase.js"></script>
-
-<style>
-
-body{
-    margin:0;
-    background:#141414;
-    color:white;
-    font-family:Arial,Helvetica,sans-serif;
-    text-align:center;
-}
-
-h1{
-    color:#E50914;
-}
-
-#contenedor-qr{
-    display:inline-block;
-    background:white;
-    padding:15px;
-    border-radius:10px;
-    margin-top:20px;
-}
-
-#contenedor-qr p{
-    color:black;
-    margin:0 0 10px;
-    font-weight:bold;
-}
-
-#imagenQR{
-    width:180px;
-    height:180px;
-}
-
-#estado{
-    margin:20px;
-    color:#ffd54f;
-    font-weight:bold;
-}
-
-iframe{
-    width:900px;
-    height:550px;
-    border:none;
-    border-radius:10px;
-    background:black;
-    margin-bottom:30px;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <title>Pantalla Principal - Estudio Sermiteop</title>
+    <style>
+        body {
+            margin: 0;
+            background: #050508;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+        #contenedor-pantalla {
+            position: relative;
+            width: 850px;
+            height: 580px;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+        }
+    </style>
 </head>
 <body>
 
-<h1>NETFLIX GAMES</h1>
+    <div id="contenedor-pantalla">
+        <iframe id="iframeJuego" src=""></iframe>
+    </div>
 
-<div id="contenedor-qr">
-<p>Escanea con tu celular</p>
-<img id="imagenQR">
-</div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-<p id="estado">
-Esperando control...
-</p>
+    <script>
+        // CONFIGURACIÓN DE TU CONFIG DE FIREBASE (Reemplaza con tus datos reales)
+        const firebaseConfig = {
+            apiKey: "TU_API_KEY",
+            authDomain: "TU_AUTH_DOMAIN",
+            databaseURL: "TU_DATABASE_URL",
+            projectId: "TU_PROJECT_ID",
+            storageBucket: "TU_STORAGE_BUCKET",
+            messagingSenderId: "TU_MESSAGING_SENDER_ID",
+            appId: "TU_APP_ID"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-<iframe id="juego"></iframe>
+        // Obtener la sala actual desde la URL (ejemplo: pantalla.html?sala=SALA123&juego=palabra_oculta)
+        const parametros = new URLSearchParams(window.location.search);
+        const idSala = parametros.get("sala") || "sala_test";
+        const juegoSeleccionado = parametros.get("juego") || "palabra_oculta";
 
-<script>
+        const iframeJuego = document.getElementById("iframeJuego");
+        
+        // Cargar el juego correcto dentro del iframe
+        iframeJuego.src = `juegos/${juegoSeleccionado}.html`;
 
-//=============================
-// FIREBASE
-//=============================
+        // --- 1. ESCUCHAR CONTROLES DESDE FIREBASE Y MANDARLOS AL IFRAME ---
+        // Escucha la rama de "controles" o "comandos" dentro de tu estructura de Firebase
+        db.ref(`sesiones/${idSala}/comandos`).on("child_added", (snapshot) => {
+            const datosComando = snapshot.val();
+            if (!datosComando) return;
 
-const firebaseConfig={
-    databaseURL:"https://juegosremotos-4f2f8-default-rtdb.firebaseio.com/"
-};
+            // Reenviar el comando del celular directamente hacia adentro del iframe del juego
+            iframeJuego.contentWindow.postMessage(datosComando, "*");
 
-firebase.initializeApp(firebaseConfig);
+            // Borrar el comando procesado para mantener Firebase limpio
+            snapshot.ref.remove();
+        });
 
-const db=firebase.database();
+        // --- 2. ESCUCHAR ORDENES DEL JUEGO (IFRAME) Y ESCRIBIRLAS EN FIREBASE ---
+        window.addEventListener("message", (evento) => {
+            const datosJuego = evento.data;
+            if (!datosJuego || !datosJuego.accion) return;
 
-//=============================
-// CREAR SALA
-//=============================
+            // Caso A: El juego le manda a la pantalla la configuración del celular de un jugador
+            if (datosJuego.accion === "CONFIGURAR_CONTROL_JUEGO") {
+                db.ref(`sesiones/${idSala}/jugadores/${datosJuego.idControlador}`).set({
+                    numeroJugador: datosJuego.numeroJugador,
+                    rol: datosJuego.datos.rol,
+                    palabra: datosJuego.datos.palabra || "",
+                    opciones: datosJuego.datos.opciones,
+                    estadoPanel: "ELEGIR_PISTA" // Le avisa al celular que dibuje los incisos
+                });
+            }
 
-const sessionId="sala_"+Math.random().toString(36).substring(2,10);
+            // Caso B: El juego avisa que es el turno específico de un celular
+            if (datosJuego.accion === "ACTIVAR_TURNO_CELULAR") {
+                db.ref(`sesiones/${idSala}/jugadores/${datosJuego.idControlador}/miTurno`).set(true);
+            }
 
-//=============================
-// SABER QUÉ JUEGO ABRIR
-//=============================
-
-const parametros=new URLSearchParams(location.search);
-
-const juego=parametros.get("juego") || "snake";
-
-//=============================
-// CARGAR EL JUEGO
-//=============================
-
-document.getElementById("juego").src="juegos/"+juego+".html?sala="+sessionId;
-
-//=============================
-// URL DEL CONTROL
-//=============================
-
-const controlURL=
-
-location.origin+
-location.pathname.replace("pantalla.html","control.html")+
-"?sala="+sessionId;
-
-//=============================
-// GENERAR QR
-//=============================
-
-document.getElementById("imagenQR").src=
-
-"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data="+encodeURIComponent(controlURL);
-
-//=============================
-// ESCUCHAR FIREBASE
-//=============================
-
-db.ref("sesiones/"+sessionId).on("value",(snapshot)=>{
-
-const datos=snapshot.val();
-
-if(!datos)return;
-
-document.getElementById("estado").innerHTML="Control conectado 🎮";
-
-document.getElementById("estado").style.color="#2ed573";
-
-//Enviar al juego
-
-const iframe=document.getElementById("juego");
-
-iframe.contentWindow.postMessage({
-
-accion:datos.accion
-
-},"*");
-
-});
-
-</script>
-
+            // Caso C: El juego abre las votaciones y manda la lista de sobrevivientes a los celulares
+            if (datosJuego.accion === "MOSTRAR_BOTONES_VOTO_CELULAR") {
+                db.ref(`sesiones/${idSala}/jugadores/${datosJuego.idControlador}`).update({
+                    estadoPanel: "VOTACION",
+                    opcionesVoto: datosJuego.opcionesVoto
+                });
+            }
+        });
+    </script>
 </body>
 </html>
