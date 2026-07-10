@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Control de Juego - Estudio Sermiteop</title>
+    <title>Control Universal - Estudio Sermiteop</title>
     <style>
         body {
             margin: 0;
@@ -31,11 +31,11 @@
         .rol-inocente { background: #2ed573; color: white; }
         .rol-impostor { background: #ff4757; color: white; animation: pulso 1.5s infinite; }
         
-        /* Botones dinámicos de Incisos y Votación */
+        /* Estilos de Botones */
         .cuadrilla-botones {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             margin-top: 15px;
         }
         .btn-opcion {
@@ -47,13 +47,35 @@
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.1s;
             -webkit-tap-highlight-color: transparent;
         }
-        .btn-opcion:active { background: #e50914; border-color: #ff1f2a; }
+        .btn-opcion:active { background: #E50914; border-color: #ff1f2a; }
         .btn-omitir { background: #333 !important; border-color: #555 !important; }
         
-        .texto-espera { font-size: 18px; color: #8e9bb0; font-style: italic; }
+        .texto-espera { font-size: 17px; color: #8e9bb0; font-style: italic; }
+
+        /* DISEÑO DE CRUCETA / D-PAD TRADICIONAL */
+        .d-pad-contenedor {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(3, 80px);
+            gap: 10px;
+            justify-content: center;
+            margin: 30px auto 20px auto;
+        }
+        .btn-dpad {
+            background: #1e2030;
+            color: white;
+            border: 3px solid #3d425e;
+            border-radius: 12px;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .btn-dpad:active { background: #00d2d3; border-color: #00a8ff; }
 
         @keyframes pulso {
             0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
@@ -64,53 +86,55 @@
 </head>
 <body>
 
-    <div id="pantalla-lobby" class="contenedor visible">
-        <h2 style="color: #E50914;">CONECTADO</h2>
+    <div id="pantalla-lobby" class="contenedor">
+        <h2 style="color: #E50914;">SALA DE ESPERA</h2>
         <p class="texto-espera" style="margin-top: 30px;">Esperando que el dueño de la sala inicie la partida en la TV...</p>
     </div>
 
     <div id="pantalla-pistas" class="contenedor">
         <div id="lbl-rol" class="rol-alerta">Cargando rol...</div>
         <div id="contenedor-palabra" style="font-size: 22px; margin-bottom: 20px; font-weight: bold;"></div>
-        
         <div id="estado-turno-mensaje" class="texto-espera" style="color: #ffd32a; margin-bottom: 15px;">MIRA LA PANTALLA GRANDE...</div>
-        
-        <div id="botones-incisos" class="cuadrilla-botones">
-            </div>
+        <div id="botones-incisos" class="cuadrilla-botones"></div>
     </div>
 
     <div id="pantalla-votacion" class="contenedor">
-        <h2 style="color: #ff4757;">¿QUIÉN ES EL IMPOSTOR?</h2>
-        <p style="color: #aaa; margin: 0 0 15px 0;">¡Vota por el sospechoso o decide omitir!</p>
+        <h2 style="color: #ff4757;">¿QUIÊN ES EL IMPOSTOR?</h2>
+        <p style="color: #aaa; margin: 0 0 15px 0;">¡Vota por el sospechoso u omite el voto!</p>
+        <div id="botones-voto" class="cuadrilla-botones"></div>
+    </div>
+
+    <div id="pantalla-clasica" class="contenedor visible">
+        <h2 style="color: #00d2d3; font-size: 22px; letter-spacing: 1px;">ESTUDIO SERMITEOP</h2>
+        <p style="color: #777; margin: 0; font-size: 14px;">Control de Acción Conectado</p>
         
-        <div id="botones-voto" class="cuadrilla-botones">
-            </div>
+        <div class="d-pad-contenedor">
+            <div></div>
+            <button class="btn-dpad" onclick="enviarComando('ARRIBA')">⬆️</button>
+            <div></div>
+            <button class="btn-dpad" onclick="enviarComando('IZQUIERDA')">⬅️</button>
+            <div style="background: #0f1016; border-radius: 50%;"></div>
+            <button class="btn-dpad" onclick="enviarComando('DERECHA')">➡️</button>
+            <div></div>
+            <button class="btn-dpad" onclick="enviarComando('ABAJO')">⬇️</button>
+            <div></div>
+        </div>
+        
+        <button class="btn-opcion" style="background: #2ed573; border-color: #26af5f; width: 85%; margin-top: 15px;" onclick="enviarComando('BOTON_A')">
+            🎮 ACCIÓN (A)
+        </button>
     </div>
 
     <div id="pantalla-espera" class="contenedor">
-        <h2>ACCIÓN REGISTRADA</h2>
-        <p class="texto-espera" style="margin-top: 40px;">Tu respuesta fue enviada de forma segura.<br><br>¡Mira el tablero principal!</p>
+        <h2>ACCIÓN ENVIADA</h2>
+        <p class="texto-espera" style="margin-top: 40px;">Tu respuesta fue registrada de forma segura.<br><br>¡Mira el tablero principal!</p>
     </div>
-
-    <div id="pantalla-clasica" class="contenedor">
-    <h2 style="color: #00d2d3;">CONTROL CLÁSICO</h2>
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px;">
-        <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('ARRIBA')">⬆️</button>
-        <div style="display: flex; gap: 40px;">
-            <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('IZQUIERDA')">⬅️</button>
-            <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('DERECHA')">➡️</button>
-        </div>
-        <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('ABAJO')">⬇️</button>
-    </div>
-    
-    <button class="btn-opcion" style="background: #2ed573; margin-top: 30px; width: 80%;" onclick="enviarComando('BOTON_A')">BOTÓN A</button>
-</div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // CONFIGURACIÓN DE TU CONFIG DE FIREBASE (Usa la misma de tu pantalla.html)
+        // CONFIGURACIÓN DE TU BASE DE DATOS DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyD-Xgn8F9weuNtZ7ICMVMUBdch2S2DIx_I",
             authDomain: "juegosremotos-4f2f8.firebaseapp.com",
@@ -124,112 +148,120 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Identificadores únicos del control (ej: control.html?sala=SALA123&id=mando_99)
         const parametros = new URLSearchParams(window.location.search);
         const idSala = parametros.get("sala") || "sala_test";
-        // Si no existe un ID de control en la URL, generamos uno único aleatorio para este celular
+        
         let idControlador = parametros.get("id");
         if (!idControlador) {
             idControlador = "cel_" + Math.random().toString(36).substr(2, 9);
         }
 
-        // Registrar presencia inicial en la rama de comandos para que el lobby del juego nos detecte
+        // Informar a la pantalla grande que este dispositivo se acaba de unir
         db.ref(`sesiones/${idSala}/comandos`).push({
             accion: "CONEXION_CONTROL",
             idControlador: idControlador
         });
 
-        // --- ESCUCHAR ACTUALIZACIONES DE NUESTRO JUGADOR DESDE LA PANTALLA GRANDE ---
-        // --- ESCUCHAR ACTUALIZACIONES DE NUESTRO JUGADOR DESDE LA PANTALLA GRANDE ---
-db.ref(`sesiones/${idSala}/jugadores/${idControlador}`).on("value", (snapshot) => {
-    const datos = snapshot.val();
-    
-    // DETECCIÓN AUTOMÁTICA DE JUEGO CLÁSICO:
-    // Si no hay datos del jugador en Firebase, o no tiene un estado de panel del Impostor,
-    // significa que es un juego tradicional (Snake, Space Defender, etc.)
-    if (!datos || !datos.estadoPanel) {
-        cambiarPantallaUI("pantalla-clasica");
-        return;
-    }
-
-    // CASO 1: Fase de visualización de Palabra / Rol y Elección de Incisos (Impostor)
-    if (datos.estadoPanel === "ELEGIR_PISTA") {
-        cambiarPantallaUI("pantalla-pistas");
-        
-        const contenedorRol = document.getElementById("lbl-rol");
-        const contenedorPalabra = document.getElementById("contenedor-palabra");
-        const txtTurno = document.getElementById("estado-turno-mensaje");
-        const divIncisos = document.getElementById("botones-incisos");
-
-        if (datos.rol === "IMPOSTOR") {
-            contenedorRol.innerText = "🕵️‍♂️ ERES EL IMPOSTOR";
-            contenedorRol.className = "rol-alerta rol-impostor";
-            contenedorPalabra.innerText = "¡No sabes la palabra! Miente.";
-        } else {
-            contenedorRol.innerText = "📝 ERES INOCENTE";
-            contenedorRol.className = "rol-alerta rol-inocente";
-            contenedorPalabra.innerText = `PALABRA: ${datos.palabra}`;
-        }
-
-        divIncisos.innerHTML = "";
-        if (datos.miTurno === true) {
-            txtTurno.innerText = "💥 ¡ES TU TURNO! Elige un inciso:";
-            txtTurno.style.color = "#2ed573";
+        // --- INTERCEPTOR INTELIGENTE DE INTERFAZ (ESCUCHANDO A LA TV) ---
+        db.ref(`sesiones/${idSala}/jugadores/${idControlador}`).on("value", (snapshot) => {
+            const datos = snapshot.val();
             
-            datos.opciones.forEach(inciso => {
-                const boton = document.createElement("button");
-                boton.className = "btn-opcion";
-                boton.innerText = inciso;
-                boton.onclick = () => enviarIncisioElegido(inciso);
-                divIncisos.appendChild(boton);
-            });
-        } else {
-            txtTurno.innerText = "Espera que los demás den sus pistas...";
-            txtTurno.style.color = "#8e9bb0";
-        }
-    }
-
-    // CASO 2: Fase de Votación Abierta (Impostor)
-    if (datos.estadoPanel === "VOTACION") {
-        cambiarPantallaUI("pantalla-votacion");
-        const divVotos = document.getElementById("botones-voto");
-        divVotos.innerHTML = "";
-
-        datos.opcionesVoto.forEach(target => {
-            const boton = document.createElement("button");
-            boton.className = "btn-opcion";
-            
-            if (target.id === idControlador) {
-                boton.innerText = `P${target.num} (Tú)`;
-                boton.disabled = true;
-                boton.style.opacity = "0.4";
-            } else {
-                boton.innerText = `Votar P${target.num}`;
-                boton.onclick = () => enviarVotoProcesado(target.id);
+            // RESPALDO SEGURO: Si no estás jugando el Impostor, se activan las flechas clásicas
+            if (!datos || !datos.estadoPanel) {
+                cambiarPantallaUI("pantalla-clasica");
+                return;
             }
-            divVotos.appendChild(boton);
+
+            // MODALIDAD IMPOSTOR - CASO 1: Selección de pistas por turnos
+            if (datos.estadoPanel === "ELEGIR_PISTA") {
+                cambiarPantallaUI("pantalla-pistas");
+                
+                const contenedorRol = document.getElementById("lbl-rol");
+                const contenedorPalabra = document.getElementById("contenedor-palabra");
+                const txtTurno = document.getElementById("estado-turno-mensaje");
+                const divIncisos = document.getElementById("botones-incisos");
+
+                if (datos.rol === "IMPOSTOR") {
+                    contenedorRol.innerText = "🕵️‍♂️ ERES EL IMPOSTOR";
+                    contenedorRol.className = "rol-alerta rol-impostor";
+                    contenedorPalabra.innerText = "No sabes la palabra. ¡Engaña al grupo!";
+                } else {
+                    contenedorRol.innerText = "📝 ERES INOCENTE";
+                    contenedorRol.className = "rol-alerta rol-inocente";
+                    contenedorPalabra.innerText = `PALABRA: ${datos.palabra}`;
+                }
+
+                divIncisos.innerHTML = "";
+                if (datos.miTurno === true) {
+                    txtTurno.innerText = "💥 ¡ES TU TURNO! Envía una pista:";
+                    txtTurno.style.color = "#2ed573";
+                    
+                    datos.opciones.forEach(inciso => {
+                        const boton = document.createElement("button");
+                        boton.className = "btn-opcion";
+                        boton.innerText = inciso;
+                        boton.onclick = () => enviarIncisoElegido(inciso);
+                        divIncisos.appendChild(boton);
+                    });
+                } else {
+                    txtTurno.innerText = "Espera que los demás den sus pistas en la TV...";
+                    txtTurno.style.color = "#8e9bb0";
+                }
+            }
+
+            // MODALIDAD IMPOSTOR - CASO 2: Veredicto y Votación Abierta
+            if (datos.estadoPanel === "VOTACION") {
+                cambiarPantallaUI("pantalla-votacion");
+                const divVotos = document.getElementById("botones-voto");
+                divVotos.innerHTML = "";
+
+                datos.opcionesVoto.forEach(target => {
+                    const boton = document.createElement("button");
+                    boton.className = "btn-opcion";
+                    
+                    if (target.id === idControlador) {
+                        boton.innerText = `P${target.num} (Tú)`;
+                        boton.disabled = true;
+                        boton.style.opacity = "0.4";
+                    } else {
+                        boton.innerText = `Votar P${target.num}`;
+                        boton.onclick = () => enviarVotoProcesado(target.id);
+                    }
+                    divVotos.appendChild(boton);
+                });
+
+                const btnOmitir = document.createElement("button");
+                btnOmitir.className = "btn-opcion btn-omitir";
+                btnOmitir.innerText = "🚫 Omitir Voto";
+                btnOmitir.onclick = () => enviarVotoProcesado("OMITIR");
+                divVotos.appendChild(btnOmitir);
+            }
         });
 
-        const btnOmitir = document.createElement("button");
-        btnOmitir.className = "btn-opcion btn-omitir";
-        btnOmitir.innerText = "🚫 Omitir Voto";
-        btnOmitir.onclick = () => enviarVotoProcesado("OMITIR");
-        divVotos.appendChild(btnOmitir);
-    }
-});
+        // --- SISTEMAS DE ENVÍO POR SEPARADO ---
+        
+        // Emisor para juegos arcade tradicionales (Snake, Space Defender, etc.)
+        function enviarComando(valorTecla) {
+            db.ref(`sesiones/${idSala}/comandos`).push({
+                accion: "TECLA_PRESIONADA", 
+                idControlador: idControlador,
+                valor: valorTecla
+            });
+        }
 
-// Función auxiliar para que las flechas envíen comandos normales de movimiento
-function enviarComando(direccion) {
-    db.ref(`sesiones/${idSala}/comandos`).push({
-        accion: "TECLA_PRESIONADA", // Ajusta este nombre según como lo lea tu Snake o Space Defender (ej: "MOVER", "KEY")
-        idControlador: idControlador,
-        valor: direccion
-    });
-}
+        // Emisores específicos para el juego del Impostor
+        function enviarIncisoElegido(textoInciso) {
+            cambiarPantallaUI("pantalla-espera");
+            db.ref(`sesiones/${idSala}/jugadores/${idControlador}/miTurno`).set(false);
+            db.ref(`sesiones/${idSala}/comandos`).push({
+                accion: "PISTA_SELECCIONADA",
+                idControlador: idControlador,
+                inciso: textoInciso
+            });
+        }
 
         function enviarVotoProcesado(idObjetivo) {
             cambiarPantallaUI("pantalla-espera");
-
             db.ref(`sesiones/${idSala}/comandos`).push({
                 accion: "VOTO_PROCESADO",
                 idControlador: idControlador,
