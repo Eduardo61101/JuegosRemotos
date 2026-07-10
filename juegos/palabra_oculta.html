@@ -98,15 +98,6 @@
         .animar-salto { transform: translateY(-20px); }
         #estado-sala { font-size: 16px; color: #ffd32a; font-weight: bold; margin-top: 15px; }
         
-        #contenedor-qr {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 15px auto;
-            display: inline-block;
-            box-shadow: 0 0 20px rgba(255,255,255,0.1);
-        }
-        #contenedor-qr img { display: block; }
 
         /* Contenedores de fases */
         .fase { display: none; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: center; }
@@ -119,12 +110,11 @@
 
     <div id="pantalla-principal">
         
-        <!-- FASE 1: LOBBY CON QR INTEGRADO -->
+        <!-- FASE 1: LOBBY -->
         <div id="fase-lobby" class="fase visible">
             <h1 style="color: #E50914; font-size: 38px; margin: 0;">¿QUIÊN ES EL IMPOSTOR?</h1>
-            <p style="color: #aaa; font-size: 16px; margin: 5px 0 0 0;">Escanea el código QR con tu celular para entrar a la partida</p>
+        
             
-            <div id="contenedor-qr"></div>
             
             <div id="lobby-slots" class="lista-jugadores"></div>
             <div id="estado-sala">Esperando que ingresen jugadores...</div>
@@ -178,24 +168,6 @@
 
         const coloresP = ["#ff4757", "#2ed573", "#1e90ff", "#ffa500", "#9b59b6", "#00d2d3", "#ff9ff3", "#feca57"];
 
-        // Generar QR dinámico basado en la URL de la ventana principal
-        function generarQRPartida() {
-    const parametrosPantalla = new URLSearchParams(window.parent.location.search);
-    const idSalaActual = parametrosPantalla.get("sala") || "sala_test";
-    
-    // SOLUCIÓN: Toma la URL exacta de pantalla.html en la raíz y la cambia por control.html
-    const urlControl = window.parent.location.href.split('?')[0].replace("pantalla.html", "control.html") + `?sala=${idSalaActual}`;
-    
-    document.getElementById("contenedor-qr").innerHTML = "";
-    new QRCode(document.getElementById("contenedor-qr"), {
-        text: urlControl,
-        width: 130,
-        height: 130,
-        colorDark : "#000000",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
-    });
-}
 
         function actualizarLobbyVisual() {
             const contenedor = document.getElementById("lobby-slots");
