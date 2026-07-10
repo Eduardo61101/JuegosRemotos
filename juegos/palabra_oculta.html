@@ -180,22 +180,22 @@
 
         // Generar QR dinámico basado en la URL de la ventana principal
         function generarQRPartida() {
-            const parametrosPantalla = new URLSearchParams(window.parent.location.search);
-            const idSalaActual = parametrosPantalla.get("sala") || "sala_test";
-            
-            // Reconstruye la ruta del control en tu servidor
-            const urlControl = `${window.location.origin}/control.html?sala=${idSalaActual}`;
-            
-            document.getElementById("contenedor-qr").innerHTML = "";
-            new QRCode(document.getElementById("contenedor-qr"), {
-                text: urlControl,
-                width: 130,
-                height: 130,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-        }
+    const parametrosPantalla = new URLSearchParams(window.parent.location.search);
+    const idSalaActual = parametrosPantalla.get("sala") || "sala_test";
+    
+    // SOLUCIÓN: Toma la URL exacta de pantalla.html en la raíz y la cambia por control.html
+    const urlControl = window.parent.location.href.split('?')[0].replace("pantalla.html", "control.html") + `?sala=${idSalaActual}`;
+    
+    document.getElementById("contenedor-qr").innerHTML = "";
+    new QRCode(document.getElementById("contenedor-qr"), {
+        text: urlControl,
+        width: 130,
+        height: 130,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+    });
+}
 
         function actualizarLobbyVisual() {
             const contenedor = document.getElementById("lobby-slots");
