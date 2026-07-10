@@ -140,99 +140,92 @@
         });
 
         // --- ESCUCHAR ACTUALIZACIONES DE NUESTRO JUGADOR DESDE LA PANTALLA GRANDE ---
-        db.ref(`sesiones/${idSala}/jugadores/${idControlador}`).on("value", (snapshot) => {
-            const datos = snapshot.val();
-            if (!datos) {
-                cambiarPantallaUI("pantalla-lobby");
-                return;
+        // --- ESCUCHAR ACTUALIZACIONES DE NUESTRO JUGADOR DESDE LA PANTALLA GRANDE ---
+db.ref(`sesiones/${idSala}/jugadores/${idControlador}`).on("value", (snapshot) => {
+    const datos = snapshot.val();
+    
+    // DETECCIÓN AUTOMÁTICA DE JUEGO CLÁSICO:
+    // Si no hay datos del jugador en Firebase, o no tiene un estado de panel del Impostor,
+    // significa que es un juego tradicional (Snake, Space Defender, etc.)
+    if (!datos || !datos.estadoPanel) {
+        cambiarPantallaUI("pantalla-clasica");
+        return;
+    }
+
+    // CASO 1: Fase de visualización de Palabra / Rol y Elección de Incisos (Impostor)
+    if (datos.estadoPanel === "ELEGIR_PISTA") {
+        cambiarPantallaUI("pantalla-pistas");
+        
+        const contenedorRol = document.getElementById("lbl-rol");
+        const contenedorPalabra = document.getElementById("contenedor-palabra");
+        const txtTurno = document.getElementById("estado-turno-mensaje");
+        const divIncisos = document.getElementById("botones-incisos");
+
+        if (datos.rol === "IMPOSTOR") {
+            contenedorRol.innerText = "🕵️‍♂️ ERES EL IMPOSTOR";
+            contenedorRol.className = "rol-alerta rol-impostor";
+            contenedorPalabra.innerText = "¡No sabes la palabra! Miente.";
+        } else {
+            contenedorRol.innerText = "📝 ERES INOCENTE";
+            contenedorRol.className = "rol-alerta rol-inocente";
+            contenedorPalabra.innerText = `PALABRA: ${datos.palabra}`;
+        }
+
+        divIncisos.innerHTML = "";
+        if (datos.miTurno === true) {
+            txtTurno.innerText = "💥 ¡ES TU TURNO! Elige un inciso:";
+            txtTurno.style.color = "#2ed573";
+            
+            datos.opciones.forEach(inciso => {
+                const boton = document.createElement("button");
+                boton.className = "btn-opcion";
+                boton.innerText = inciso;
+                boton.onclick = () => enviarIncisioElegido(inciso);
+                divIncisos.appendChild(boton);
+            });
+        } else {
+            txtTurno.innerText = "Espera que los demás den sus pistas...";
+            txtTurno.style.color = "#8e9bb0";
+        }
+    }
+
+    // CASO 2: Fase de Votación Abierta (Impostor)
+    if (datos.estadoPanel === "VOTACION") {
+        cambiarPantallaUI("pantalla-votacion");
+        const divVotos = document.getElementById("botones-voto");
+        divVotos.innerHTML = "";
+
+        datos.opcionesVoto.forEach(target => {
+            const boton = document.createElement("button");
+            boton.className = "btn-opcion";
+            
+            if (target.id === idControlador) {
+                boton.innerText = `P${target.num} (Tú)`;
+                boton.disabled = true;
+                boton.style.opacity = "0.4";
+            } else {
+                boton.innerText = `Votar P${target.num}`;
+                boton.onclick = () => enviarVotoProcesado(target.id);
             }
-
-            // CASO 1: Fase de visualización de Palabra / Rol y Elección de Incisos
-            if (datos.estadoPanel === "ELEGIR_PISTA") {
-                cambiarPantallaUI("pantalla-pistas");
-                
-                const contenedorRol = document.getElementById("lbl-rol");
-                const contenedorPalabra = document.getElementById("contenedor-palabra");
-                const txtTurno = document.getElementById("estado-turno-mensaje");
-                const divIncisos = document.getElementById("botones-incisos");
-
-                // Configurar visualización según rol
-                if (datos.rol === "IMPOSTOR") {
-                    contenedorRol.innerText = "🕵️‍♂️ ERES EL IMPOSTOR";
-                    contenedorRol.className = "rol-alerta rol-impostor";
-                    contenedorPalabra.innerText = "¡No sabes la palabra! Miente.";
-                } else {
-                    contenedorRol.innerText = "📝 ERES INOCENTE";
-                    contenedorRol.className = "rol-alerta rol-inocente";
-                    contenedorPalabra.innerText = `PALABRA: ${datos.palabra}`;
-                }
-
-                // Bloquear o desbloquear botones según sea tu turno de hablar
-                divIncisos.innerHTML = "";
-                if (datos.miTurno === true) {
-                    txtTurno.innerText = "💥 ¡ES TU TURNO! Elige un inciso:";
-                    txtTurno.style.color = "#2ed573";
-                    
-                    // Renderizar las 4 opciones enviadas por el juego equilibradamente
-                    datos.opciones.forEach(inciso => {
-                        const boton = document.createElement("button");
-                        boton.className = "btn-opcion";
-                        boton.innerText = inciso;
-                        boton.onclick = () => enviarIncisioElegido(inciso);
-                        divIncisos.appendChild(boton);
-                    });
-                } else {
-                    txtTurno.innerText = "Espera que los demás den sus pistas...";
-                    txtTurno.style.color = "#8e9bb0";
-                }
-            }
-
-            // CASO 2: Fase de Votación Abierta
-            if (datos.estadoPanel === "VOTACION") {
-                cambiarPantallaUI("pantalla-votacion");
-                const divVotos = document.getElementById("botones-voto");
-                divVotos.innerHTML = "";
-
-                // Generar los botones de los jugadores vivos en la sala sacados de Firebase
-                datos.opcionesVoto.forEach(target => {
-                    const boton = document.createElement("button");
-                    boton.className = "btn-opcion";
-                    
-                    // Impedir votar por uno mismo de forma limpia
-                    if (target.id === idControlador) {
-                        boton.innerText = `P${target.num} (Tú)`;
-                        boton.disabled = true;
-                        boton.style.opacity = "0.4";
-                    } else {
-                        boton.innerText = `Votar P${target.num}`;
-                        boton.onclick = () => enviarVotoProcesado(target.id);
-                    }
-                    divVotos.appendChild(boton);
-                });
-
-                // Añadir el botón universal de Omitir Voto al final
-                const btnOmitir = document.createElement("button");
-                btnOmitir.className = "btn-opcion btn-omitir";
-                btnOmitir.innerText = "🚫 Omitir Voto";
-                btnOmitir.onclick = () => enviarVotoProcesado("OMITIR");
-                divVotos.appendChild(btnOmitir);
-            }
+            divVotos.appendChild(boton);
         });
 
-        // --- EMISORES DE ACCIONES HACIA LA PANTALLA GRANDE ---
-        function enviarIncisioElegido(textoInciso) {
-            cambiarPantallaUI("pantalla-espera");
-            
-            // Quitar bandera de turno en Firebase de forma inmediata
-            db.ref(`sesiones/${idSala}/jugadores/${idControlador}/miTurno`).set(false);
+        const btnOmitir = document.createElement("button");
+        btnOmitir.className = "btn-opcion btn-omitir";
+        btnOmitir.innerText = "🚫 Omitir Voto";
+        btnOmitir.onclick = () => enviarVotoProcesado("OMITIR");
+        divVotos.appendChild(btnOmitir);
+    }
+});
 
-            // Enviar respuesta a la cola de comandos de Firebase para que el iframe la ejecute
-            db.ref(`sesiones/${idSala}/comandos`).push({
-                accion: "PISTA_SELECCIONADA",
-                idControlador: idControlador,
-                inciso: textoInciso
-            });
-        }
+// Función auxiliar para que las flechas envíen comandos normales de movimiento
+function enviarComando(direccion) {
+    db.ref(`sesiones/${idSala}/comandos`).push({
+        accion: "TECLA_PRESIONADA", // Ajusta este nombre según como lo lea tu Snake o Space Defender (ej: "MOVER", "KEY")
+        idControlador: idControlador,
+        valor: direccion
+    });
+}
 
         function enviarVotoProcesado(idObjetivo) {
             cambiarPantallaUI("pantalla-espera");
