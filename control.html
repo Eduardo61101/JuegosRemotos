@@ -92,6 +92,20 @@
         <p class="texto-espera" style="margin-top: 40px;">Tu respuesta fue enviada de forma segura.<br><br>¡Mira el tablero principal!</p>
     </div>
 
+    <div id="pantalla-clasica" class="contenedor">
+    <h2 style="color: #00d2d3;">CONTROL CLÁSICO</h2>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 20px;">
+        <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('ARRIBA')">⬆️</button>
+        <div style="display: flex; gap: 40px;">
+            <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('IZQUIERDA')">⬅️</button>
+            <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('DERECHA')">➡️</button>
+        </div>
+        <button class="btn-opcion" style="width: 80px;" onclick="enviarComando('ABAJO')">⬇️</button>
+    </div>
+    
+    <button class="btn-opcion" style="background: #2ed573; margin-top: 30px; width: 80%;" onclick="enviarComando('BOTON_A')">BOTÓN A</button>
+</div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
