@@ -3,32 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <title>Pantalla Principal - Estudio Sermiteop</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             margin: 0;
             background: #050508;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
             color: white;
             overflow: hidden;
         }
+        /* Contenedor superior para el QR informativo */
+        #barra-conexion {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #12131c;
+            padding: 10px 25px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 2px solid #222536;
+        }
+        #contenedor-qr {
+            background: white;
+            padding: 5px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        #contenedor-qr img { display: block; }
+        
         #contenedor-pantalla {
             position: relative;
             width: 850px;
-            height: 580px;
+            height: 540px;
+            border: 3px solid #333;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
         iframe {
             width: 100%;
             height: 100%;
             border: none;
             background: transparent;
+            border-radius: 9px;
         }
     </style>
 </head>
 <body>
+
+    <div id="barra-conexion">
+        <div id="contenedor-qr"></div>
+        <div>
+            <div style="font-size: 18px; font-weight: bold; color: #ff4757;">ESTUDIO SERMITEOP</div>
+            <div style="font-size: 14px; color: #aaa; margin-top: 3px;">Escanea para conectar tu control</div>
+            <div style="font-size: 12px; color: #ffd32a; font-weight: bold; margin-top: 2px;">Sala: <span id="lbl-sala-id">---</span></div>
+        </div>
+    </div>
 
     <div id="contenedor-pantalla">
         <iframe id="iframeJuego" src=""></iframe>
@@ -38,7 +72,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // CONFIGURACIÓN DE TU CONFIG DE FIREBASE (Reemplaza con tus datos reales)
+        // CONFIGURACIÓN DE TU CONFIG DE FIREBASE (Usa tus datos reales)
         const firebaseConfig = {
             apiKey: "AIzaSyD-Xgn8F9weuNtZ7ICMVMUBdch2S2DIx_I",
             authDomain: "juegosremotos-4f2f8.firebaseapp.com",
@@ -52,51 +86,63 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Obtener la sala actual desde la URL (ejemplo: pantalla.html?sala=SALA123&juego=palabra_oculta)
         const parametros = new URLSearchParams(window.location.search);
         const idSala = parametros.get("sala") || "sala_test";
         const juegoSeleccionado = parametros.get("juego") || "palabra_oculta";
 
+        document.getElementById("lbl-sala-id").innerText = idSala.toUpperCase();
         const iframeJuego = document.getElementById("iframeJuego");
         
-        // Cargar el juego correcto dentro del iframe
-        iframeJuego.src = `juegos/${juegoSeleccionado}.html`;
+        // Cargar juego en el iframe
+        iframeJuego.src = `Juegos/${juegoSeleccionado}.html`;
 
-        // --- 1. ESCUCHAR CONTROLES DESDE FIREBASE Y MANDARLOS AL IFRAME ---
-        // Escucha la rama de "controles" o "comandos" dentro de tu estructura de Firebase
+        // GENERAR QR UNIVERSAL DESDE PANTALLA.HTML
+        function generarQRUniversal() {
+            // Construye la URL hacia control.html de forma automática y precisa
+            const urlControl = window.location.href.split('?')[0].replace("pantalla.html", "control.html") + `?sala=${idSala}`;
+            
+            document.getElementById("contenedor-qr").innerHTML = "";
+            new QRCode(document.getElementById("contenedor-qr"), {
+                text: urlControl,
+                width: 75, // Un tamaño más compacto para la barra superior
+                height: 75,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+        
+        // Ejecutar QR al cargar
+        generarQRUniversal();
+
+        // --- ESCUCHAR CONTROLES DESDE FIREBASE Y MANDARLOS AL IFRAME ---
         db.ref(`sesiones/${idSala}/comandos`).on("child_added", (snapshot) => {
             const datosComando = snapshot.val();
             if (!datosComando) return;
 
-            // Reenviar el comando del celular directamente hacia adentro del iframe del juego
             iframeJuego.contentWindow.postMessage(datosComando, "*");
-
-            // Borrar el comando procesado para mantener Firebase limpio
             snapshot.ref.remove();
         });
 
-        // --- 2. ESCUCHAR ORDENES DEL JUEGO (IFRAME) Y ESCRIBIRLAS EN FIREBASE ---
+        // --- ESCUCHAR ORDENES DEL JUEGO (IFRAME) Y ESCRIBIRLAS EN FIREBASE ---
         window.addEventListener("message", (evento) => {
             const datosJuego = evento.data;
             if (!datosJuego || !datosJuego.accion) return;
 
-            // Caso A: El juego le manda a la pantalla la configuración del celular de un jugador
             if (datosJuego.accion === "CONFIGURAR_CONTROL_JUEGO") {
                 db.ref(`sesiones/${idSala}/jugadores/${datosJuego.idControlador}`).set({
                     numeroJugador: datosJuego.numeroJugador,
                     rol: datosJuego.datos.rol,
                     palabra: datosJuego.datos.palabra || "",
                     opciones: datosJuego.datos.opciones,
-                    estadoPanel: "ELEGIR_PISTA" // Le avisa al celular que dibuje los incisos
+                    estadoPanel: "ELEGIR_PISTA"
                 });
             }
 
-            // Caso B: El juego avisa que es el turno específico de un celular
             if (datosJuego.accion === "ACTIVAR_TURNO_CELULAR") {
                 db.ref(`sesiones/${idSala}/jugadores/${datosJuego.idControlador}/miTurno`).set(true);
             }
 
-            // Caso C: El juego abre las votaciones y manda la lista de sobrevivientes a los celulares
             if (datosJuego.accion === "MOSTRAR_BOTONES_VOTO_CELULAR") {
                 db.ref(`sesiones/${idSala}/jugadores/${datosJuego.idControlador}`).update({
                     estadoPanel: "VOTACION",
