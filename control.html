@@ -20,7 +20,7 @@
         }
         .contenedor {
             width: 90%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
             display: none;
         }
@@ -31,7 +31,7 @@
         .rol-inocente { background: #2ed573; color: white; }
         .rol-impostor { background: #ff4757; color: white; animation: pulso 1.5s infinite; }
         
-        /* Estilos de Botones */
+        /* Botones del Impostor */
         .cuadrilla-botones {
             display: flex;
             flex-direction: column;
@@ -52,30 +52,65 @@
         }
         .btn-opcion:active { background: #E50914; border-color: #ff1f2a; }
         .btn-omitir { background: #333 !important; border-color: #555 !important; }
-        
         .texto-espera { font-size: 17px; color: #8e9bb0; font-style: italic; }
 
-        /* DISEÑO DE CRUCETA / D-PAD TRADICIONAL */
-        .d-pad-contenedor {
-            display: grid;
-            grid-template-columns: repeat(3, 80px);
-            grid-template-rows: repeat(3, 80px);
-            gap: 10px;
+        /* --- DISEÑO DEL GAMEPAD CLÁSICO ORIGINAL --- */
+        .gamepad-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            margin: 30px auto 20px auto;
+            gap: 30px;
+            margin-top: 20px;
         }
-        .btn-dpad {
-            background: #1e2030;
+
+        /* Cruceta Direccional */
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 75px);
+            grid-template-rows: repeat(3, 75px);
+            gap: 5px;
+        }
+        .btn-dir {
+            background: #222536;
             color: white;
             border: 3px solid #3d425e;
-            border-radius: 12px;
-            font-size: 28px;
+            border-radius: 10px;
+            font-size: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            user-select: none;
         }
-        .btn-dpad:active { background: #00d2d3; border-color: #00a8ff; }
+        .btn-dir:active { background: #00d2d3; border-color: #00a8ff; }
+
+        /* Botonera de Acción A, B, X, Y */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 65px);
+            grid-template-rows: repeat(3, 65px);
+            gap: 8px;
+        }
+        .btn-act {
+            color: white;
+            font-weight: bold;
+            font-size: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 3px solid rgba(0,0,0,0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .btn-act:active { transform: scale(0.9); filter: brightness(1.2); }
+        
+        /* Colores icónicos estilo consola */
+        .btn-y { background: #ffca28; grid-column: 1; grid-row: 2; } /* Amarillo */
+        .btn-x { background: #29b6f6; grid-column: 2; grid-row: 1; } /* Azul */
+        .btn-b { background: #ef5350; grid-column: 3; grid-row: 2; } /* Rojo */
+        .btn-a { background: #66bb6a; grid-column: 2; grid-row: 3; } /* Verde */
 
         @keyframes pulso {
             0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
@@ -86,11 +121,13 @@
 </head>
 <body>
 
+    <!-- LOBBY DE ESPERA (Impostor) -->
     <div id="pantalla-lobby" class="contenedor">
         <h2 style="color: #E50914;">SALA DE ESPERA</h2>
         <p class="texto-espera" style="margin-top: 30px;">Esperando que el dueño de la sala inicie la partida en la TV...</p>
     </div>
 
+    <!-- SELECCIÓN DE PISTAS (Impostor) -->
     <div id="pantalla-pistas" class="contenedor">
         <div id="lbl-rol" class="rol-alerta">Cargando rol...</div>
         <div id="contenedor-palabra" style="font-size: 22px; margin-bottom: 20px; font-weight: bold;"></div>
@@ -98,38 +135,48 @@
         <div id="botones-incisos" class="cuadrilla-botones"></div>
     </div>
 
+    <!-- VOTACIÓN (Impostor) -->
     <div id="pantalla-votacion" class="contenedor">
         <h2 style="color: #ff4757;">¿QUIÊN ES EL IMPOSTOR?</h2>
         <p style="color: #aaa; margin: 0 0 15px 0;">¡Vota por el sospechoso u omite el voto!</p>
         <div id="botones-voto" class="cuadrilla-botones"></div>
     </div>
 
+    <!-- PANTALLA TRADICIONAL RESTAURADA (Para Snake, Space Defender, etc.) -->
     <div id="pantalla-clasica" class="contenedor visible">
-        <h2 style="color: #00d2d3; font-size: 22px; letter-spacing: 1px;">ESTUDIO SERMITEOP</h2>
-        <p style="color: #777; margin: 0; font-size: 14px;">Control de Acción Conectado</p>
+        <h2 style="color: #00d2d3; font-size: 20px; margin: 0;">ESTUDIO SERMITEOP</h2>
         
-        <div class="d-pad-contenedor">
-            <div></div>
-            <button class="btn-dpad" onclick="enviarComando('ARRIBA')">⬆️</button>
-            <div></div>
-            <button class="btn-dpad" onclick="enviarComando('IZQUIERDA')">⬅️</button>
-            <div style="background: #0f1016; border-radius: 50%;"></div>
-            <button class="btn-dpad" onclick="enviarComando('DERECHA')">➡️</button>
-            <div></div>
-            <button class="btn-dpad" onclick="enviarComando('ABAJO')">⬇️</button>
-            <div></div>
+        <div class="gamepad-layout">
+            <!-- D-PAD DIRECCIONAL -->
+            <div class="d-pad">
+                <div></div>
+                <button class="btn-dir" onclick="enviarMando('ARRIBA')">⬆️</button>
+                <div></div>
+                <button class="btn-dir" onclick="enviarMando('IZQUIERDA')">⬅️</button>
+                <div style="background: #191b28; border-radius: 8px;"></div>
+                <button class="btn-dir" onclick="enviarMando('DERECHA')">➡️</button>
+                <div></div>
+                <button class="btn-dir" onclick="enviarMando('ABAJO')">⬇️</button>
+                <div></div>
+            </div>
+            
+            <!-- BOTONERA DE ACCIÓN A, B, X, Y ORIGINAL -->
+            <div class="action-buttons">
+                <button class="btn-act btn-x" onclick="enviarMando('X')">X</button>
+                <button class="btn-act btn-y" onclick="enviarMando('Y')">Y</button>
+                <button class="btn-act btn-b" onclick="enviarMando('B')">B</button>
+                <button class="btn-act btn-a" onclick="enviarMando('A')">A</button>
+            </div>
         </div>
-        
-        <button class="btn-opcion" style="background: #2ed573; border-color: #26af5f; width: 85%; margin-top: 15px;" onclick="enviarComando('BOTON_A')">
-            🎮 ACCIÓN (A)
-        </button>
     </div>
 
+    <!-- PANTALLA DE ACCIÓN REGISTRADA -->
     <div id="pantalla-espera" class="contenedor">
         <h2>ACCIÓN ENVIADA</h2>
         <p class="texto-espera" style="margin-top: 40px;">Tu respuesta fue registrada de forma segura.<br><br>¡Mira el tablero principal!</p>
     </div>
 
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
@@ -156,23 +203,23 @@
             idControlador = "cel_" + Math.random().toString(36).substr(2, 9);
         }
 
-        // Informar a la pantalla grande que este dispositivo se acaba de unir
+        // Registrar conexión inicial
         db.ref(`sesiones/${idSala}/comandos`).push({
             accion: "CONEXION_CONTROL",
             idControlador: idControlador
         });
 
-        // --- INTERCEPTOR INTELIGENTE DE INTERFAZ (ESCUCHANDO A LA TV) ---
+        // --- MANEJO DE VISTAS (ESCUCHANDO A LA PANTALLA GRANDE) ---
         db.ref(`sesiones/${idSala}/jugadores/${idControlador}`).on("value", (snapshot) => {
             const datos = snapshot.val();
             
-            // RESPALDO SEGURO: Si no estás jugando el Impostor, se activan las flechas clásicas
+            // RESPALDO: Si no hay juego de roles activo, abre el Gamepad Clásico con A, B, X, Y
             if (!datos || !datos.estadoPanel) {
                 cambiarPantallaUI("pantalla-clasica");
                 return;
             }
 
-            // MODALIDAD IMPOSTOR - CASO 1: Selección de pistas por turnos
+            // IMPOSTOR - PISTAS
             if (datos.estadoPanel === "ELEGIR_PISTA") {
                 cambiarPantallaUI("pantalla-pistas");
                 
@@ -193,7 +240,7 @@
 
                 divIncisos.innerHTML = "";
                 if (datos.miTurno === true) {
-                    txtTurno.innerText = "💥 ¡ES TU TURNO! Envía una pista:";
+                    txtTurno.innerText = "💥 ¡ES TU TURNO! Elige tu inciso:";
                     txtTurno.style.color = "#2ed573";
                     
                     datos.opciones.forEach(inciso => {
@@ -204,12 +251,12 @@
                         divIncisos.appendChild(boton);
                     });
                 } else {
-                    txtTurno.innerText = "Espera que los demás den sus pistas en la TV...";
+                    txtTurno.innerText = "Espera tu turno mirando la pantalla grande...";
                     txtTurno.style.color = "#8e9bb0";
                 }
             }
 
-            // MODALIDAD IMPOSTOR - CASO 2: Veredicto y Votación Abierta
+            // IMPOSTOR - VOTACIONES
             if (datos.estadoPanel === "VOTACION") {
                 cambiarPantallaUI("pantalla-votacion");
                 const divVotos = document.getElementById("botones-voto");
@@ -238,18 +285,19 @@
             }
         });
 
-        // --- SISTEMAS DE ENVÍO POR SEPARADO ---
+        // --- SISTEMA DE EMISIÓN DE BOTONES RESTAURADO ---
         
-        // Emisor para juegos arcade tradicionales (Snake, Space Defender, etc.)
-        function enviarComando(valorTecla) {
+        // Esta función envía los datos usando la estructura idDispositivo/comando que tus otros juegos leen perfectamente
+        function enviarMando(botonPulsado) {
             db.ref(`sesiones/${idSala}/comandos`).push({
-                accion: "TECLA_PRESIONADA", 
+                idDispositivo: idControlador,
                 idControlador: idControlador,
-                valor: valorTecla
+                comando: botonPulsado, // Envía 'ARRIBA', 'ABAJO', 'A', 'B', etc.
+                accion: "BOTON_PULSADO" // Mantiene compatibilidad por si se busca un tipo de acción
             });
         }
 
-        // Emisores específicos para el juego del Impostor
+        // Emisores dedicados del juego del impostor
         function enviarIncisoElegido(textoInciso) {
             cambiarPantallaUI("pantalla-espera");
             db.ref(`sesiones/${idSala}/jugadores/${idControlador}/miTurno`).set(false);
