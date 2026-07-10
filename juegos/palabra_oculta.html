@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Palabra Oculta: Impostor - Estudio Sermiteop</title>
+    <!-- Librería automática para generar códigos QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -28,7 +30,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
-            padding: 30px;
+            padding: 20px;
             box-sizing: border-box;
             text-align: center;
         }
@@ -36,37 +38,25 @@
             background: #E50914;
             color: white;
             border: none;
-            padding: 16px 38px;
-            font-size: 20px;
+            padding: 14px 35px;
+            font-size: 18px;
             font-weight: bold;
             border-radius: 6px;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 15px;
             box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
-        }
-        .btn-verde {
-            background: #2ed573;
-            color: white;
-            border: none;
-            padding: 16px 38px;
-            font-size: 20px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 20px;
-            box-shadow: 0 0 15px rgba(46, 213, 115, 0.4);
         }
         .lista-jugadores {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 20px;
-            margin-top: 25px;
+            margin-top: 20px;
             width: 100%;
         }
         .tarjeta-jugador {
-            width: 160px;
-            padding: 20px 10px;
+            width: 150px;
+            padding: 15px 10px;
             background: #1c1d2a;
             border-radius: 8px;
             border: 2px dashed #444;
@@ -77,6 +67,7 @@
         }
         .tarjeta-jugador.activo { border-style: solid; color: white; background: #222536; }
         .tarjeta-jugador.muerto { opacity: 0.3; border-color: #555 !important; background: #111 !important; color: #555 !important; text-decoration: line-through; }
+        
         .globo-pista {
             margin-top: 10px;
             background: #fff;
@@ -88,7 +79,7 @@
             display: none;
             word-wrap: break-word;
         }
-        #votos-recibidos {
+        .votos-recibidos {
             position: absolute;
             top: -15px;
             right: -10px;
@@ -107,6 +98,16 @@
         .animar-salto { transform: translateY(-20px); }
         #estado-sala { font-size: 16px; color: #ffd32a; font-weight: bold; margin-top: 15px; }
         
+        #contenedor-qr {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px auto;
+            display: inline-block;
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+        #contenedor-qr img { display: block; }
+
         /* Contenedores de fases */
         .fase { display: none; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: center; }
         .fase.visible { display: flex; }
@@ -114,20 +115,23 @@
 </head>
 <body>
 
-    <div style="font-size: 16px; margin-bottom: 12px; font-weight: bold; color: #8e9bb0; letter-spacing: 1px;">SALA DE DEDUCCIÓN SOCIAL</div>
+    <div style="font-size: 16px; margin-bottom: 12px; font-weight: bold; color: #8e9bb0; letter-spacing: 1px;">SALA MULTIJUGADOR LOCAL</div>
 
     <div id="pantalla-principal">
         
+        <!-- FASE 1: LOBBY CON QR INTEGRADO -->
         <div id="fase-lobby" class="fase visible">
-            <h1 style="color: #E50914; font-size: 40px; margin: 0 0 10px 0;">¿QUIÉN ES EL IMPOSTOR?</h1>
-            <p style="color: #aaa; font-size: 17px; margin: 0;">Rondas de pistas por turnos. Mínimo 3 jugadores obligatorios.</p>
+            <h1 style="color: #E50914; font-size: 38px; margin: 0;">¿QUIÊN ES EL IMPOSTOR?</h1>
+            <p style="color: #aaa; font-size: 16px; margin: 5px 0 0 0;">Escanea el código QR con tu celular para entrar a la partida</p>
             
-            <div id="lobby-slots" class="lista-jugadores">
-                </div>
+            <div id="contenedor-qr"></div>
+            
+            <div id="lobby-slots" class="lista-jugadores"></div>
             <div id="estado-sala">Esperando que ingresen jugadores...</div>
             <button id="btnIniciarJuego" class="btn-rojo" style="display: none;" onclick="prepararPartida()">¡REPARTIR ROLES!</button>
         </div>
 
+        <!-- FASE 2: DISCUSIÓN POR TURNOS -->
         <div id="fase-debate" class="fase">
             <h1 id="letrero-turno" style="color: #ffd32a; font-size: 34px; margin: 0 0 20px 0;">TURNO DE: JUGADOR 1</h1>
             
@@ -136,6 +140,7 @@
             <button id="btnForzarVotacion" class="btn-rojo" style="display: none; background: #ff4757;" onclick="abrirVotacionGlobal()">🚨 ABRIR VOTACIONES</button>
         </div>
 
+        <!-- FASE 3: VOTACIÓN -->
         <div id="fase-votacion" class="fase">
             <h1 style="color: #ff4757; font-size: 38px; margin: 0 0 10px 0;">¡VOTACIÓN EN CURSO!</h1>
             <p style="color: #aaa; margin: 0 0 25px 0;">Selecciona a tu sospechoso u omite el voto desde tu dispositivo móvil</p>
@@ -150,7 +155,7 @@
     </div>
 
     <script>
-        // Diccionario de palabras con 2 incisos Verdaderos y 2 Falsos exactos para cada una
+        // Banco de palabras: 2 Verdaderas y 2 Falsas obligatorias por cada una
         const diccionarioSecreto = [
             { palabra: "Almohada", v: ["Tela", "Dormir"], f: ["Metal", "Agua"] },
             { palabra: "Computadora", v: ["Teclado", "Internet"], f: ["Fuego", "Planta"] },
@@ -167,11 +172,30 @@
         let palabraRonda = {};
         let idImpostor = "";
         let turnoActualIdx = 0;
-        let votos = {}; // Almacena quién votó por quién
+        let votos = {}; 
         let votosOmitidos = 0;
-        let jugadoresVotaron = Set;
+        let jugadoresVotaron = new Set();
 
         const coloresP = ["#ff4757", "#2ed573", "#1e90ff", "#ffa500", "#9b59b6", "#00d2d3", "#ff9ff3", "#feca57"];
+
+        // Generar QR dinámico basado en la URL de la ventana principal
+        function generarQRPartida() {
+            const parametrosPantalla = new URLSearchParams(window.parent.location.search);
+            const idSalaActual = parametrosPantalla.get("sala") || "sala_test";
+            
+            // Reconstruye la ruta del control en tu servidor
+            const urlControl = `${window.location.origin}/control.html?sala=${idSalaActual}`;
+            
+            document.getElementById("contenedor-qr").innerHTML = "";
+            new QRCode(document.getElementById("contenedor-qr"), {
+                text: urlControl,
+                width: 130,
+                height: 130,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
 
         function actualizarLobbyVisual() {
             const contenedor = document.getElementById("lobby-slots");
@@ -179,7 +203,7 @@
             jugadores.forEach((j, idx) => {
                 contenedor.innerHTML += `
                     <div class="tarjeta-jugador activo" style="border-color: ${coloresP[idx % coloresP.length]}; color: ${coloresP[idx % coloresP.length]}">
-                        P${idx + 1}<br><span style="font-size:12px; color:#fff;">Conectado</span>
+                        P${idx + 1}<br><span style="font-size:12px; color:#fff;">Listo</span>
                     </div>
                 `;
             });
@@ -197,31 +221,26 @@
             }
         }
 
-        // --- SISTEMA INTERACTIVO DE ASIGNACIÓN Y PISTAS POR TURNOS ---
         function prepararPartida() {
             partidaActiva = true;
             jugadoresVotaron = new Set();
             votosOmitidos = 0;
             votos = {};
             
-            // Inicializar contadores de votos
             jugadores.forEach(j => { votos[j.id] = 0; j.vivo = true; j.pistaDada = ""; });
 
-            // Elegir palabra e impostor
             palabraRonda = diccionarioSecreto[Math.floor(Math.random() * diccionarioSecreto.length)];
             const impostorAleatorio = jugadores[Math.floor(Math.random() * jugadores.length)];
             idImpostor = impostorAleatorio.id;
 
-            // Enviar configuraciones personalizadas a los controles celulares
             jugadores.forEach((j, idx) => {
                 let datosControl = {};
                 if (j.id === idImpostor) {
                     datosControl = {
                         rol: "IMPOSTOR",
-                        opciones: ["Madera", "Electricidad", "Líquido", "Deporte"] // Opciones trampa genéricas a ciegas
+                        opciones: ["Madera", "Electricidad", "Líquido", "Deporte"].sort(() => Math.random() - 0.5)
                     };
                 } else {
-                    // Mezclar de forma balanceada 2 verdaderas y 2 falsas
                     const combinadas = [...palabraRonda.v, ...palabraRonda.f].sort(() => Math.random() - 0.5);
                     datosControl = {
                         rol: "INOCENTE",
@@ -230,7 +249,6 @@
                     };
                 }
 
-                // Comunicar al script padre de pantalla.html para que actualice la interfaz de ese celular específico
                 window.parent.postMessage({
                     accion: "CONFIGURAR_CONTROL_JUEGO",
                     idControlador: j.id,
@@ -263,9 +281,7 @@
         }
 
         function evaluarTurnoSiguiente() {
-            // Buscar el próximo jugador vivo
             if (turnoActualIdx >= jugadores.length) {
-                // Todos dieron su pista, habilitar botón de votación en pantalla
                 document.getElementById("letrero-turno").innerText = "¡TODOS DIERON SU PISTA!";
                 document.getElementById("btnForzarVotacion").style.display = "block";
                 return;
@@ -279,8 +295,6 @@
             }
 
             document.getElementById("letrero-turno").innerText = `TURNO DE: JUGADOR ${turnoActualIdx + 1}`;
-            
-            // Avisar al control del jugador actual que ya puede elegir su inciso
             window.parent.postMessage({ accion: "ACTIVAR_TURNO_CELULAR", idControlador: jActual.id }, "*");
         }
 
@@ -288,7 +302,6 @@
             cambiarFaseUI("fase-votacion");
             document.getElementById("btnForzarVotacion").style.display = "none";
             
-            // Dibujar tablero votación
             const contenedor = document.getElementById("votacion-slots");
             contenedor.innerHTML = "";
             jugadores.forEach((j, idx) => {
@@ -303,8 +316,7 @@
             document.getElementById("voto-omitido-ui").style.display = "block";
             document.getElementById("lbl-votos-omitir").innerText = "0";
 
-            // Enviar orden de votación a todos los controles que sigan vivos
-            const listaVivos = jugadores.filter(j => j.vivo).map((j, idx) => ({ id: j.id, num: jugadores.indexOf(j) + 1 }));
+            const listaVivos = jugadores.filter(j => j.vivo).map(j => ({ id: j.id, num: jugadores.indexOf(j) + 1 }));
             
             jugadores.forEach(j => {
                 if (j.vivo) {
@@ -317,16 +329,15 @@
             });
         }
 
-        // --- RECEPCIÓN DE MENSAJES DESDE LOS CONTROLES SMARTPHONES ---
+        // Receptor de mensajes del puente de Firebase (pantalla.html)
         window.addEventListener("message", (evento) => {
             const datos = evento.data;
             if (!datos || !datos.accion) return;
 
             const idMando = datos.idControlador || datos.idDispositivo || "anonimo";
 
-            // Registro en Lobby inicial
             if (!partidaActiva) {
-                if (!controlesMapeados[idMando]) {
+                if (datos.accion === "CONEXION_CONTROL" && !controlesMapeados[idMando]) {
                     controlesMapeados[idMando] = true;
                     jugadores.push({ id: idMando, vivo: true, pistaDada: "" });
                     actualizarLobbyVisual();
@@ -334,13 +345,11 @@
                 return;
             }
 
-            // Procesar Pista en su turno correspondiente
             if (datos.accion === "PISTA_SELECCIONADA") {
                 let jTurnoActual = jugadores[turnoActualIdx];
                 if (jTurnoActual && jTurnoActual.id === idMando) {
                     jTurnoActual.pistaDada = datos.inciso;
                     
-                    // Hacer saltar su tarjeta animadamente en la pantalla grande
                     const avatar = document.getElementById(`avatar-debate-${jTurnoActual.id}`);
                     const globo = document.getElementById(`globo-${jTurnoActual.id}`);
                     
@@ -350,18 +359,15 @@
                     
                     setTimeout(() => avatar.classList.remove("animar-salto"), 600);
 
-                    // Avanzar al siguiente turno
                     turnoActualIdx++;
                     evaluarTurnoSiguiente();
                 }
             }
 
-            // Procesar Registro de Votación Dinámico
             if (datos.accion === "VOTO_PROCESADO") {
-                if (jugadoresVotaron.has(idMando)) return; // Evitar doble voto
+                if (jugadoresVotaron.has(idMando)) return; 
                 jugadoresVotaron.add(idMando);
 
-                // Cambiar estado en pantalla grande (Buzón oculto)
                 document.getElementById(`status-voto-${idMando}`).innerText = "✅ Listo";
                 document.getElementById(`status-voto-${idMando}`).style.color = "#2ed573";
 
@@ -371,7 +377,6 @@
                     votos[datos.objetivo]++;
                 }
 
-                // Si todos los sobrevivientes ya votaron, ejecutar el escrutinio
                 const totalVivos = jugadores.filter(j => j.vivo).length;
                 if (jugadoresVotaron.size >= totalVivos) {
                     ejecutarEscrutinioFinal();
@@ -380,7 +385,6 @@
         });
 
         function ejecutarEscrutinioFinal() {
-            // Mostrar los números reales de votos acumulados en las tarjetas animadamente
             jugadores.forEach(j => {
                 if (j.vivo) {
                     const uiVotos = document.getElementById(`votos-recibidos-${j.id}`);
@@ -393,7 +397,6 @@
             document.getElementById("lbl-votos-omitir").innerText = votosOmitidos;
 
             setTimeout(() => {
-                // Encontrar el más votado
                 let maxVotos = votosOmitidos;
                 let expulsadoId = "OMITIR";
                 let empate = false;
@@ -411,24 +414,22 @@
                 });
 
                 if (empate || expulsadoId === "OMITIR") {
-                    alert("¡Votación Omitida o Empate! Nadie es expulsado de la sala. Iniciando siguiente ronda...");
+                    alert("¡Votación Omitida o Empate! Nadie es expulsado de la sala. Pasando al siguiente debate...");
                     reiniciarRondaLimpia();
                 } else {
-                    // Eliminar al jugador más votado
                     let jugadorExpulsado = jugadores.find(j => j.id === expulsadoId);
                     jugadorExpulsado.vivo = false;
                     let nJugador = jugadores.indexOf(jugadorExpulsado) + 1;
 
                     if (expulsadoId === idImpostor) {
-                        alert(`¡P${nJugador} HA SIDO ELIMINADO! Era el IMPOSTOR 🕵️‍♂️. ¡Los inocentes ganan la partida!`);
+                        alert(`¡P${nJugador} HA SIDO ELIMINADO!\n\nEra el IMPOSTOR 🕵️‍♂️. ¡Los inocentes ganan la partida!`);
                         finalizarPartidaCompleta();
                     } else {
-                        alert(`¡P${nJugador} HA SIDO ELIMINADO! No era el Impostor. La sospecha continúa...`);
+                        alert(`¡P${nJugador} HA SIDO ELIMINADO!\n\nNo era el Impostor. La sospecha continúa...`);
                         
-                        // Verificar si quedan suficientes jugadores para seguir jugando
                         const vivosRestantes = jugadores.filter(j => j.vivo).length;
                         if (vivosRestantes <= 2) {
-                            alert("¡El Impostor ha logrado reducir al grupo! ¡EL IMPOSTOR GANA LA PARTIDA! 🕵️‍♂️🔥");
+                            alert("¡El Impostor ha logrado mermar al grupo!\n\n¡EL IMPOSTOR GANA LA PARTIDA! 🕵️‍♂️🔥");
                             finalizarPartidaCompleta();
                         } else {
                             reiniciarRondaLimpia();
@@ -446,11 +447,11 @@
         }
 
         function finalizarPartidaCompleta() {
-            partidaActive = false;
-            partidaIniciada = false;
+            partidaActiva = false;
             jugadores = [];
             controlesMapeados = {};
             cambiarFaseUI("fase-lobby");
+            generarQRPartida();
             actualizarLobbyVisual();
         }
 
@@ -458,6 +459,9 @@
             document.querySelectorAll(".fase").forEach(f => f.classList.remove("visible"));
             document.getElementById(idFase).classList.add("visible");
         }
+
+        // Ejecutar generación de QR al cargar la vista
+        window.addEventListener("load", generarQRPartida);
     </script>
 </body>
 </html>
